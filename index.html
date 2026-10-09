@@ -4,23 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Paddock Mapper</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 /* Layout: full-height map with a field-book side panel; panel drops below the map on phones. */
 :root{
   --bg:#FFFFFF; --panel:#FFFFFF; --ink:#111111; --muted:#6E6E6E; --line:#E3E3E3; --soft:#F4F4F4; --mid:#BDBDBD;
   --accent:#111111; --accent-ink:#FFFFFF; --danger:#111111; --focus:#111111;
-  --f-ui:"Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-head:"Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
-  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --f-ui:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --f-head:var(--f-ui);
+  --f-mono:var(--f-ui); /* numbers use the same sans face, with tabular figures so columns line up */
   color-scheme:light;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-ui);-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-ui);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
 button,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 [hidden]{display:none!important}
@@ -38,7 +35,7 @@ button,input{font:inherit;color:inherit}
 
 /* ---------- map toolbar ---------- */
 .tools{position:absolute;z-index:800;top:12px;left:12px;display:flex;flex-wrap:wrap;gap:6px;max-width:calc(100% - 70px)}
-.tool{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;font:600 14.5px var(--f-head);letter-spacing:.02em;box-shadow:0 1px 3px rgb(0 0 0/.18);cursor:pointer}
+.tool{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;font:600 14px var(--f-head);letter-spacing:0;box-shadow:0 1px 3px rgb(0 0 0/.18);cursor:pointer}
 .tool svg{width:18px;height:18px;flex:none}
 .tool:hover:not(:disabled){border-color:var(--muted)}
 .tool[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -97,17 +94,17 @@ tr[data-seg]{cursor:pointer}
 .vh.on{background:#111;border-color:#fff;box-shadow:0 0 0 2px #111,0 1px 4px rgb(0 0 0/.4)}
 .mh{border-radius:50%;background:rgb(255 255 255/.7);border:1.5px solid #161A18;opacity:.85}
 .mh:hover{opacity:1;background:#fff}
-.leaflet-container{font-family:var(--f-ui)}
+.leaflet-container{font-family:var(--f-ui);font-variant-numeric:tabular-nums}
 .leaflet-control-layers,.leaflet-bar a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
 .leaflet-control-layers{border-radius:8px!important;box-shadow:0 1px 3px rgb(0 0 0/.18)!important}
 .leaflet-control-layers-expanded{padding:8px 12px;font-size:14px}
 
 /* ---------- side panel ---------- */
-.head h1{margin:0;font:700 24px/1.1 var(--f-head);letter-spacing:.01em;text-wrap:balance}
-.head p{margin:4px 0 12px;color:var(--muted);font-size:14px}
+.head h1{margin:0 0 12px;font:700 24px/1.1 var(--f-head);letter-spacing:.01em;text-wrap:balance}
 .search{display:flex;gap:6px}
+.search .btn{flex:none}
 .search input{flex:1;min-width:0;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
-.btn{height:36px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font:600 14px var(--f-head);letter-spacing:.02em;cursor:pointer;white-space:nowrap}
+.btn{min-height:36px;padding:6px 12px;line-height:1.2;text-align:center;border:1px solid var(--line);border-radius:8px;background:var(--panel);font:600 13.5px var(--f-head);cursor:pointer}
 .btn:hover{border-color:var(--muted)}
 .btn.danger{color:var(--danger)}
 .btn.confirm{background:var(--ink);border-color:var(--ink);color:var(--panel)}
@@ -122,6 +119,11 @@ tr[data-seg]{cursor:pointer}
 @media (max-width:400px){.sum{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:8px}.sum div:nth-child(3){padding-left:0;border-left:0}}
 
 .settings{display:grid;gap:10px}
+.settings h2{margin-bottom:2px}
+.seg-row{justify-content:space-between}
+.seg-row .segc{display:grid;grid-template-columns:1fr 1fr}
+.seg-row .segc button{padding:0 10px;white-space:nowrap}
+.seg-l{font-size:14.5px}
 .row{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px}
 .check{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
 .check input{width:17px;height:17px;accent-color:var(--accent)}
@@ -135,7 +137,7 @@ tr[data-seg]{cursor:pointer}
 
 .list-h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
 h2{margin:0;font:700 16px var(--f-head);text-transform:uppercase;letter-spacing:.08em}
-.empty{color:var(--muted);font-size:14px;margin:4px 0}
+.empty{color:var(--muted);font-size:14px;margin:4px 0 10px}
 .card{border:1px solid var(--line);border-radius:10px;margin-top:8px;background:var(--panel)}
 .card.sel{border-color:var(--mid);background:var(--soft)}
 .card-h{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer}
@@ -144,6 +146,9 @@ h2{margin:0;font:700 16px var(--f-head);text-transform:uppercase;letter-spacing:
 .nm{flex:1;min-width:0;height:32px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:transparent;font:600 16px var(--f-head);letter-spacing:.01em}
 .nm:hover,.nm:focus{border-color:var(--line);background:var(--panel)}
 .meta{font:500 13px var(--f-mono);color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.cx{flex:none;display:grid;place-items:center;width:30px;height:30px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
+.cx svg{width:18px;height:18px}
+.cx:hover{border-color:var(--line);color:var(--ink)}
 .lk{flex:none;display:grid;place-items:center;width:30px;height:30px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--mid);cursor:pointer}
 .lk svg{width:17px;height:17px}
 .lk:hover{border-color:var(--line);color:var(--ink)}
@@ -165,7 +170,7 @@ tr[data-seg]:hover td,tr[data-cor]:hover td{background:var(--soft)}
 .tag{display:inline-block;font:600 11px var(--f-head);letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:var(--soft);color:var(--ink)}
 .card-a{display:flex;flex-wrap:wrap;gap:6px}
 
-.exp{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-top:10px}
+.exp{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
 .hint{margin:6px 0 0;font-size:13px;color:var(--muted)}
 .notes{font-size:13px;color:var(--muted);display:grid;gap:6px}
 .notes p{margin:0}
@@ -234,7 +239,6 @@ tr[data-seg]:hover td,tr[data-cor]:hover td{background:var(--soft)}
   <aside class="side">
     <section class="head">
       <h1>Paddock Mapper</h1>
-      <p>Draw paddocks on the map. Corners snap to neighbouring paddocks, so shared fences line up exactly.</p>
       <form class="search" id="searchForm">
         <input id="q" type="search" placeholder="Place name, or lat, lon" aria-label="Search for a place or coordinates" autocomplete="off">
         <button class="btn" type="submit">Go</button>
@@ -246,20 +250,35 @@ tr[data-seg]:hover td,tr[data-cor]:hover td{background:var(--soft)}
       <p class="sumnote" id="sumNote"></p>
     </section>
 
+
+    <section>
+      <div class="list-h"><h2>Paddocks</h2></div>
+      <div id="list"></div>
+    </section>
+
     <section class="settings">
+      <h2>Settings</h2>
       <div class="row">
-        <label class="check"><input type="checkbox" id="snapOn" checked> Snap corners</label>
+        <label class="check"><input type="checkbox" id="snapOn" checked> Snap</label>
         <div class="range"><input type="range" id="snapPx" min="4" max="40" step="1" value="14" aria-label="Snap distance in screen pixels"><output id="snapOut"></output></div>
       </div>
-      <div class="row">
-        <label class="check"><input type="checkbox" id="fillOn"> Fill paddocks (untick for boundaries only)</label>
-        <label class="check"><input type="checkbox" id="lenOn" checked> Fence lengths on map</label>
-      </div>
-      <div class="row">
+      <div class="row"><label class="check"><input type="checkbox" id="fillOn"> Fill paddocks</label></div>
+      <div class="row"><label class="check"><input type="checkbox" id="lenOn" checked> Fence lengths on map</label></div>
+      <div class="row"><label class="check"><input type="checkbox" id="nameOn" checked> Paddock names on map</label></div>
+      <div class="row"><label class="check"><input type="checkbox" id="areaOn" checked> Paddock areas on map</label></div>
+      <div class="row seg-row"><span class="seg-l">Coordinates</span>
         <div class="segc" role="group" aria-label="Coordinate format">
           <button type="button" data-coord="ll" aria-pressed="true">Lat / Lon</button>
           <button type="button" data-coord="mga" aria-pressed="false">MGA / UTM</button>
         </div>
+      </div>
+      <div class="row seg-row"><span class="seg-l">Length</span>
+        <div class="segc" role="group" aria-label="Length units">
+          <button type="button" data-len="m" aria-pressed="true">Metres</button>
+          <button type="button" data-len="ft" aria-pressed="false">Feet</button>
+        </div>
+      </div>
+      <div class="row seg-row"><span class="seg-l">Area</span>
         <div class="segc" role="group" aria-label="Area units">
           <button type="button" data-area="ha" aria-pressed="true">Hectares</button>
           <button type="button" data-area="ac" aria-pressed="false">Acres</button>
@@ -268,13 +287,8 @@ tr[data-seg]:hover td,tr[data-cor]:hover td{background:var(--soft)}
     </section>
 
     <section>
-      <div class="list-h"><h2>Paddocks</h2></div>
-      <div id="list"></div>
-    </section>
-
-    <section>
       <h2>Project file</h2>
-      <p class="hint">Save everything (paddocks, map position, layer and settings) to a file, and open it again later. Opening a file replaces everything currently on the map; Undo brings the previous work back.</p>
+      <p class="hint">Saves paddocks, map view and settings to a file. Opening a file replaces the current map; Undo reverts it.</p>
       <div class="exp">
         <button class="btn" id="bSaveProj">Save project file</button>
         <button class="btn" id="bOpenProj">Open project file</button>
@@ -477,7 +491,7 @@ const state = {
   paddocks: [], selected: null, selNode: null,
   mode: 'view', draft: null,
   snap: true, snapPx: 14, showLengths: true, coord: 'll',
-  layer: 'Google Satellite', fill: false, areaUnit: 'ha', measure: null
+  layer: 'Google Satellite', fill: false, showAreas: true, showNames: true, areaUnit: 'ha', lenUnit: 'm', measure: null
 };
 let S = null;               // computed stats cache
 let altDown = false;
@@ -491,12 +505,15 @@ const edgeKey = (a, b) => { const x = key(a), y = key(b); return x < y ? x + '|'
 const uid = () => Math.random().toString(36).slice(2, 9);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nf = (n, d) => n.toLocaleString('en-AU', { minimumFractionDigits: d, maximumFractionDigits: d });
-const fmtM = n => nf(n, 1);
+const FT = 0.3048;
+const LU = () => state.lenUnit === 'ft' ? 'ft' : 'm';
+const toLU = m => state.lenUnit === 'ft' ? m / FT : m;
+const fmtM = n => nf(toLU(n), 1);
 const fmtHa = m2 => nf(m2 / 1e4, 2);
 const SQM_PER_ACRE = 4046.8564224;
 const areaU = () => state.areaUnit === 'ac' ? 'ac' : 'ha';
 const fmtArea = m2 => nf(state.areaUnit === 'ac' ? m2 / SQM_PER_ACRE : m2 / 1e4, 2);
-const fmtMapLen = n => (n < 100 ? nf(n, 1) : nf(n, 0)) + ' m';
+const fmtMapLen = n => { const v = toLU(n); return (v < 100 ? nf(v, 1) : nf(v, 0)) + ' ' + LU(); };
 function dms(b) {
   let t = Math.round(b * 3600); t = ((t % 1296000) + 1296000) % 1296000;
   const d = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
@@ -729,7 +746,7 @@ function render() {
   for (const P of state.paddocks) {
     const sel = P.id === state.selected;
     const pl = L.polygon(P.ring, {
-      color: P.color, weight: sel ? 4 : 3, opacity: 1, dashArray: S.warn.has(P.id) ? '10 7' : null,
+      color: P.color, weight: sel ? 3 : 2, opacity: 1, dashArray: S.warn.has(P.id) ? '10 7' : null,
       fillColor: P.color, fillOpacity: state.fill ? (sel ? 0.16 : 0.1) : 0, className: 'pdk'
     }).addTo(polyLayer);
     pl.on('click', e => {
@@ -755,8 +772,11 @@ function renderLabels() {
   if (!S) return;
   for (const P of state.paddocks) {
     const st = S.per.get(P.id);
+    if (!state.showNames && !state.showAreas) continue;
     if (!st.labelAt) st.labelAt = labelPoint(P.ring, st.centroid);
-    divMarker(st.labelAt, `<div class="plabel"><b>${esc(P.name)}</b><span>${fmtArea(st.area)} ${areaU()}${P.locked ? ' · locked' : ''}</span></div>`).addTo(labelLayer);
+    const nameHtml = state.showNames ? `<b>${esc(P.name)}</b>` : '';
+    const areaHtml = state.showAreas ? `<span>${fmtArea(st.area)} ${areaU()}</span>` : '';
+    divMarker(st.labelAt, `<div class="plabel">${nameHtml}${areaHtml}</div>`).addTo(labelLayer);
   }
   if (state.showLengths) {
     for (const E of S.edges.values()) {
@@ -774,8 +794,10 @@ function renderLabels() {
   }
 }
 
+let midList = []; // midpoint handles and the two corners they sit between, so they can follow a drag
 function renderHandles() {
   handleLayer.clearLayers();
+  midList = [];
   if (state.mode !== 'edit') return;
   const nodes = new Map(), edges = new Map();
   for (const P of state.paddocks) {
@@ -797,6 +819,7 @@ function renderHandles() {
     const mid = { lat: (E.a.lat + E.b.lat) / 2, lng: (E.a.lng + E.b.lng) / 2 };
     const mk = L.marker(mid, { draggable: true, autoPan: true, keyboard: false, zIndexOffset: 400, title: 'Drag to add a corner',
       icon: L.divIcon({ className: 'mh', iconSize: [MID, MID] }) }).addTo(handleLayer);
+    midList.push({ mk, a: E.a, b: E.b });
     const insert = () => {
       pushUndo();
       return E.owners.map(o => { byId(o.pid).ring.splice(o.i + 1, 0, { lat: mid.lat, lng: mid.lng }); return { pid: o.pid, idx: o.i + 1 }; });
@@ -829,16 +852,22 @@ function renderHandles() {
 }
 
 function attachDrag(mk, getMembers, undoInside) {
-  let members = [], affected = [];
+  let members = [], affected = [], moved = new Set();
   const skip = (pid, idx) => members.some(m => m.pid === pid && m.idx === idx);
   const move = p => {
-    for (const m of members) byId(m.pid).ring[m.idx] = { lat: p.lat, lng: p.lng };
+    // corners are updated in place so the midpoint handles beside them can follow
+    for (const v of moved) { v.lat = p.lat; v.lng = p.lng; delete v.auto; }
     for (const pid of affected) { const pl = polyById.get(pid); if (pl) pl.setLatLngs(byId(pid).ring); }
+    for (const md of midList) {
+      if (md.mk === mk || !(moved.has(md.a) || moved.has(md.b))) continue;
+      md.mk.setLatLng({ lat: (md.a.lat + md.b.lat) / 2, lng: (md.a.lng + md.b.lng) / 2 });
+    }
   };
   mk.on('dragstart', () => {
     if (!undoInside) pushUndo();
     members = getMembers();
     affected = [...new Set(members.map(m => m.pid))];
+    moved = new Set(members.map(m => byId(m.pid).ring[m.idx]));
     labelLayer.clearLayers();
   });
   mk.on('drag', e => {
@@ -892,8 +921,8 @@ function renderDraft(cursor) {
   if (!d || !d.pts.length) return;
   const pts = d.pts.slice();
   // black line with a white core so it reads on both street maps and imagery
-  L.polyline(pts, { color: '#111', weight: 6, interactive: false }).addTo(draftLayer);
-  L.polyline(pts, { color: '#fff', weight: 2.5, interactive: false }).addTo(draftLayer);
+  L.polyline(pts, { color: '#111', weight: 4.5, interactive: false }).addTo(draftLayer);
+  L.polyline(pts, { color: '#fff', weight: 2, interactive: false }).addTo(draftLayer);
   if (cursor) {
     L.polyline([pts[pts.length - 1], cursor], { color: '#fff', weight: 4, opacity: .8, interactive: false }).addTo(draftLayer);
     L.polyline([pts[pts.length - 1], cursor], { color: '#111', weight: 2, dashArray: '6 6', interactive: false }).addTo(draftLayer);
@@ -911,11 +940,13 @@ function draftLength(cursor) {
   return s;
 }
 
+let closedAt = 0; // time a shape was closed by clicking its first point; the second click of a double-click is ignored
 function drawClick(latlng) {
+  if (Date.now() - closedAt < 500 && !state.draft) return;
   const d = state.draft || (state.draft = { pts: [] });
   if (d.pts.length >= 3) {
     const p0 = map.latLngToContainerPoint(d.pts[0]);
-    if (p0.distanceTo(map.latLngToContainerPoint(latlng)) <= Math.max(state.snapPx, 12)) return finishDraft();
+    if (p0.distanceTo(map.latLngToContainerPoint(latlng)) <= Math.max(state.snapPx, 12)) { closedAt = Date.now(); return finishDraft(); }
   }
   const s = findSnap(latlng);
   const p = s ? s.latlng : { lat: latlng.lat, lng: latlng.lng };
@@ -977,7 +1008,7 @@ function updateBanner(msg) {
   if (msg) { $('#bannerMsg').innerHTML = msg; return; }
   $('#bannerMsg').innerHTML = n === 0
     ? 'Click the map to place the first corner.'
-    : `<b>${n}</b> corner${n > 1 ? 's' : ''} · <b>${fmtM(draftLength())} m</b> of fence${n >= 3 ? ' · click the first corner to close' : ''}`;
+    : `<b>${n}</b> corner${n > 1 ? 's' : ''} · <b>${fmtM(draftLength())} ${LU()}</b> of fence${n >= 3 ? ' · click the first corner to close' : ''}`;
 }
 
 function updateTools() {
@@ -1029,12 +1060,16 @@ function renderSide() {
   $('#sum').innerHTML = `
     <div><span class="k">Paddocks</span><span class="v">${t.count}</span></div>
     <div><span class="k">Area</span><span class="v">${fmtArea(t.area)} <small>${areaU()}</small></span></div>
-    <div><span class="k">Fence</span><span class="v">${nf(t.fence, 0)} <small>m</small></span></div>
-    <div><span class="k">Shared</span><span class="v">${nf(t.shared, 0)} <small>m</small></span></div>`;
+    <div><span class="k">Fence</span><span class="v">${nf(toLU(t.fence), 0)} <small>${LU()}</small></span></div>
+    <div><span class="k">Shared</span><span class="v">${nf(toLU(t.shared), 0)} <small>${LU()}</small></span></div>`;
   $('#sumNote').textContent = t.count ? 'Fence counts each shared fence once. Shared is fence between two paddocks.' : '';
   const list = $('#list');
   if (!state.paddocks.length) {
-    list.innerHTML = '<p class="empty">No paddocks yet. Press <b>Draw paddock</b>, then click each corner on the map.</p>';
+    list.innerHTML = '<p class="empty">No paddocks yet. Press <b>Draw paddock</b>, then click each corner on the map.</p><button class="btn" id="bExamples" type="button">Show example paddocks</button>';
+    $('#bExamples').onclick = () => {
+      pushUndo(); showExamples(); render(); save();
+      map.fitBounds(L.latLngBounds([DARLINGTON_POINT, ...state.paddocks.flatMap(p => p.ring)]), { padding: [60, 60] });
+    };
     return;
   }
   const zlabel = `${S.south ? 'MGA / UTM' : 'UTM'} zone ${S.zone}${S.south ? 'S' : 'N'}`;
@@ -1044,13 +1079,14 @@ function renderSide() {
         <input type="color" class="sw" value="${P.color}" data-act="color" aria-label="Colour for ${esc(P.name)}">
         <input class="nm" value="${esc(P.name)}" data-act="name" aria-label="Paddock name">
         <span class="meta">${fmtArea(st.area)} ${areaU()}</span>
+        <button class="cx" data-act="toggle" aria-expanded="${sel}" title="${sel ? 'Collapse' : 'Expand'}" aria-label="${sel ? 'Collapse' : 'Expand'} ${esc(P.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${sel ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6'}"/></svg></button>
         <button class="lk" data-act="lock" aria-pressed="${!!P.locked}" title="${P.locked ? 'Locked: corners can’t be moved or deleted. Click to unlock.' : 'Lock this paddock against changes'}" aria-label="${P.locked ? 'Unlock' : 'Lock'} ${esc(P.name)}">${P.locked ? LOCK_SVG : OPEN_SVG}</button></div>`;
     const w = S.warn.get(P.id);
     const warnLine = w ? `<p class="warn">Check: ${esc(w.join('; '))}</p>` : '';
     if (!sel) return `<article class="card" data-id="${P.id}">${head}${warnLine}</article>`;
     const fenceRows = st.segs.map((s, i) => `<tr data-seg="${i}">
         <td>F${i + 1}</td><td>C${i + 1}→C${(i + 1) % st.segs.length + 1}</td>
-        <td class="r">${nf(s.d, 2)}</td><td class="r">${s.brg.toFixed(4).padStart(8, '0')}°</td>
+        <td class="r">${nf(toLU(s.d), 2)}</td><td class="r">${s.brg.toFixed(4).padStart(8, '0')}°</td>
         <td>${s.shared.length ? s.shared.map(n => `<span class="tag">${esc(n)}</span>`).join(' ') : ''}</td></tr>`).join('');
     const corRows = P.ring.map((v, i) => {
       if (state.coord === 'mga') { const u = toUTM(v.lat, v.lng, S.zone); return `<tr data-cor="${i}"><td>C${i + 1}</td><td class="r">${nf(u.E, 2).replace(/,/g, ' ')}</td><td class="r">${nf(u.N, 2).replace(/,/g, ' ')}</td></tr>`; }
@@ -1061,11 +1097,11 @@ function renderSide() {
       <div class="card-b">
         <div class="stats">
           <div><span class="k">Area</span><b>${fmtArea(st.area)} ${areaU()}</b></div>
-          <div><span class="k">Perimeter</span><b>${fmtM(st.perim)} m</b></div>
+          <div><span class="k">Perimeter</span><b>${fmtM(st.perim)} ${LU()}</b></div>
           <div><span class="k">Corners</span><b>${P.ring.length}</b></div>
         </div>
         <h3>Fence lines <span>click a row for elevation</span></h3>
-        <div class="tw"><table><thead><tr><th>Fence</th><th>Corners</th><th class="r">Length m</th><th class="r">Bearing ° true</th><th>Shared with</th></tr></thead><tbody>${fenceRows}</tbody></table></div>
+        <div class="tw"><table><thead><tr><th>Fence</th><th>Corners</th><th class="r">Length ${LU()}</th><th class="r">Bearing ° true</th><th>Shared with</th></tr></thead><tbody>${fenceRows}</tbody></table></div>
         <h3>Corners <span>${state.coord === 'mga' ? zlabel : 'decimal degrees'}</span></h3>
         <div class="tw"><table><thead><tr>${corHead}</tr></thead><tbody>${corRows}</tbody></table></div>
         <div class="card-a">
@@ -1118,6 +1154,11 @@ list.addEventListener('click', e => {
     state.selected = null; cleanup(); render(); save(); toast(`${P.name} deleted. Undo is available.`);
     return;
   }
+  if (act === 'toggle' || (act === 'select' && state.selected === id)) {
+    if (state.selected === id) { state.selected = null; render(); }
+    else { state.selected = id; render(); map.fitBounds(L.latLngBounds(P.ring), { padding: [50, 50], maxZoom: 18 }); }
+    return;
+  }
   if ((act === 'select' || act === 'name') && state.selected !== id) {
     state.selected = id;
     render();
@@ -1131,6 +1172,7 @@ list.addEventListener('input', e => {
   if (e.target.dataset.act === 'name') { P.name = e.target.value || 'Unnamed'; S = computeAll(); renderLabels(); save(); }
   if (e.target.dataset.act === 'color') { P.color = e.target.value; polyById.get(P.id)?.setStyle({ color: P.color, fillColor: P.color }); save(); }
 });
+list.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset.act === 'name') e.target.blur(); });
 list.addEventListener('change', e => { if (e.target.dataset.act === 'name' || e.target.dataset.act === 'color') render(); });
 list.addEventListener('mouseover', e => {
   const tr = e.target.closest('tr[data-seg],tr[data-cor]');
@@ -1147,14 +1189,16 @@ list.addEventListener('mouseover', e => {
 list.addEventListener('mouseleave', () => hiLayer.clearLayers());
 
 /* ================= export / import ================= */
-const csvq = v => { const s = String(v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+const csvq = v => { let s = String(v);
+  if (/^[=+@]/.test(s) || (/^-/.test(s) && !/^-?\d+(\.\d+)?$/.test(s))) s = "'" + s; // stop spreadsheets treating names as formulas
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
 const csv = rows => '\ufeff' + rows.map(r => r.map(csvq).join(',')).join('\r\n') + '\r\n';
 const stamp = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 function fenceRows() {
-  const rows = [['paddock', 'fence', 'from_corner', 'to_corner', 'from_lat', 'from_lon', 'to_lat', 'to_lon', 'length_m', 'bearing_true_deg', 'bearing_true_dms', 'shared_with']];
+  const rows = [['paddock', 'fence', 'from_corner', 'to_corner', 'from_lat', 'from_lon', 'to_lat', 'to_lon', 'length_m', 'length_ft', 'bearing_true_deg', 'bearing_true_dms', 'shared_with']];
   for (const P of state.paddocks) S.per.get(P.id).segs.forEach((s, i, a) => rows.push([P.name, 'F' + (i + 1), 'C' + (i + 1), 'C' + ((i + 1) % a.length + 1),
-    s.a.lat.toFixed(7), s.a.lng.toFixed(7), s.b.lat.toFixed(7), s.b.lng.toFixed(7), s.d.toFixed(2), s.brg.toFixed(4), dms(s.brg), s.shared.join('; ')]));
+    s.a.lat.toFixed(7), s.a.lng.toFixed(7), s.b.lat.toFixed(7), s.b.lng.toFixed(7), s.d.toFixed(2), (s.d / FT).toFixed(2), s.brg.toFixed(4), dms(s.brg), s.shared.join('; ')]));
   return rows;
 }
 function cornerRows() {
@@ -1166,15 +1210,16 @@ function cornerRows() {
   return rows;
 }
 function paddockRows() {
-  const rows = [['paddock', 'area_ha', 'area_ac', 'perimeter_m', 'corners', 'shared_fence_m', 'centroid_lat', 'centroid_lon']];
+  const rows = [['paddock', 'area_ha', 'area_ac', 'perimeter_m', 'perimeter_ft', 'corners', 'shared_fence_m', 'centroid_lat', 'centroid_lon']];
   for (const P of state.paddocks) {
     const st = S.per.get(P.id);
-    rows.push([P.name, (st.area / 1e4).toFixed(4), (st.area / SQM_PER_ACRE).toFixed(4), st.perim.toFixed(2), P.ring.length,
+    rows.push([P.name, (st.area / 1e4).toFixed(4), (st.area / SQM_PER_ACRE).toFixed(4), st.perim.toFixed(2), (st.perim / FT).toFixed(2), P.ring.length,
       st.segs.filter(s => s.shared.length).reduce((a, s) => a + s.d, 0).toFixed(2), st.centroid.lat.toFixed(7), st.centroid.lng.toFixed(7)]);
   }
   rows.push([]);
-  rows.push(['TOTAL', (S.total.area / 1e4).toFixed(4), (S.total.area / SQM_PER_ACRE).toFixed(4), '', '', '', '', '']);
-  rows.push(['Unique fence length (shared fences once)', S.total.fence.toFixed(2)]);
+  rows.push(['TOTAL', (S.total.area / 1e4).toFixed(4), (S.total.area / SQM_PER_ACRE).toFixed(4), '', '', '', '', '', '']);
+  rows.push(['Unique fence length m (shared fences once)', S.total.fence.toFixed(2)]);
+  rows.push(['Unique fence length ft (shared fences once)', (S.total.fence / FT).toFixed(2)]);
   return rows;
 }
 function geojson() {
@@ -1186,7 +1231,7 @@ function geojson() {
       geometry: { type: 'Polygon', coordinates: [ring.slice().reverse()] } }); // RFC 7946: exterior ring anticlockwise
   }
   for (const E of S.edges.values()) feats.push({ type: 'Feature',
-    properties: { kind: 'fence', length_m: +E.len.toFixed(2), paddocks: [...new Set(E.owners.map(o => byId(o.pid).name))].join('; ') },
+    properties: { kind: 'fence', length_m: +E.len.toFixed(2), length_ft: +(E.len / FT).toFixed(2), paddocks: [...new Set(E.owners.map(o => byId(o.pid).name))].join('; ') },
     geometry: { type: 'LineString', coordinates: [[E.a.lng, E.a.lat], [E.b.lng, E.b.lat]] } });
   return JSON.stringify({ type: 'FeatureCollection', features: feats }, null, 1);
 }
@@ -1195,7 +1240,7 @@ function kml() {
   const pms = state.paddocks.map(P => {
     const st = S.per.get(P.id);
     const coords = [...P.ring, P.ring[0]].map(v => `${v.lng.toFixed(8)},${v.lat.toFixed(8)},0`).join(' ');
-    return `<Placemark><name>${esc(P.name)}</name><description>${fmtHa(st.area)} ha (${nf(st.area / SQM_PER_ACRE, 2)} ac), perimeter ${fmtM(st.perim)} m</description>
+    return `<Placemark><name>${esc(P.name)}</name><description>${fmtHa(st.area)} ha (${nf(st.area / SQM_PER_ACRE, 2)} ac), perimeter ${nf(st.perim, 1)} m</description>
 <Style><LineStyle><color>ff${k(P.color)}</color><width>3</width></LineStyle><PolyStyle><color>55${k(P.color)}</color></PolyStyle></Style>
 <Polygon><tessellate>1</tessellate><outerBoundaryIs><LinearRing><coordinates>${coords}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`;
   }).join('\n');
@@ -1203,8 +1248,8 @@ function kml() {
 }
 function paddockTSV(P) {
   const st = S.per.get(P.id);
-  const lines = [`${P.name}\t${fmtArea(st.area)} ${areaU()}\tperimeter ${st.perim.toFixed(2)} m`, '', 'Fence\tFrom\tTo\tLength m\tBearing deg true\tShared with'];
-  st.segs.forEach((s, i, a) => lines.push(`F${i + 1}\tC${i + 1}\tC${(i + 1) % a.length + 1}\t${s.d.toFixed(2)}\t${s.brg.toFixed(4)}\t${s.shared.join('; ')}`));
+  const lines = [`${P.name}\t${fmtArea(st.area)} ${areaU()}\tperimeter ${toLU(st.perim).toFixed(2)} ${LU()}`, '', `Fence\tFrom\tTo\tLength ${LU()}\tBearing deg true\tShared with`];
+  st.segs.forEach((s, i, a) => lines.push(`F${i + 1}\tC${i + 1}\tC${(i + 1) % a.length + 1}\t${toLU(s.d).toFixed(2)}\t${s.brg.toFixed(4)}\t${s.shared.join('; ')}`));
   lines.push('', `Corner\tLatitude\tLongitude\tEasting\tNorthing (zone ${S.zone})`);
   P.ring.forEach((v, i) => { const u = toUTM(v.lat, v.lng, S.zone); lines.push(`C${i + 1}\t${v.lat.toFixed(7)}\t${v.lng.toFixed(7)}\t${u.E.toFixed(3)}\t${u.N.toFixed(3)}`); });
   return lines.join('\n');
@@ -1257,7 +1302,7 @@ function importGeo(obj) {
       if (ring.length > 1 && key(ring[0]) === key(ring[ring.length - 1])) ring.pop();
       if (ring.length < 3 || polyMetrics(ring).area < 1) continue;
       const pr = f.properties || {};
-      const P = { id: uid(), name: pr.name || nextName(), color: /^#[0-9a-f]{6}$/i.test(pr.color || '') ? pr.color : nextColor(), ring: clockwise(ring), locked: pr.locked === true };
+      const P = { id: uid(), name: pr.name ? String(pr.name).slice(0, 80) : nextName(), color: /^#[0-9a-f]{6}$/i.test(pr.color || '') ? pr.color : nextColor(), ring: clockwise(ring), locked: pr.locked === true };
       state.paddocks.push(P); added.push(P);
     }
   }
@@ -1309,10 +1354,20 @@ $('#bLocate').onclick = () => {
 $('#snapOn').onchange = e => { state.snap = e.target.checked; $('#snapPx').disabled = !state.snap; updateSnapOut(); save(); };
 $('#snapPx').oninput = e => { state.snapPx = +e.target.value; updateSnapOut(); save(); };
 $('#lenOn').onchange = e => { state.showLengths = e.target.checked; renderLabels(); save(); };
+$('#areaOn').onchange = e => { state.showAreas = e.target.checked; renderLabels(); save(); };
+$('#nameOn').onchange = e => { state.showNames = e.target.checked; renderLabels(); save(); };
+document.querySelectorAll('[data-len]').forEach(b => b.onclick = () => {
+  state.lenUnit = b.dataset.len === 'ft' ? 'ft' : 'm';
+  document.querySelectorAll('[data-len]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  render(); updateSnapOut(); updateBanner(); updateMeasureBanner();
+  if (state.measure) renderMeasure();
+  if (prof && prof.e) drawProfile(); else if (prof) $('#pfSrc').textContent = `${fmtM(prof.L)} ${LU()} along the line`;
+  save();
+});
 document.querySelectorAll('[data-area]').forEach(b => b.onclick = () => {
   state.areaUnit = b.dataset.area === 'ac' ? 'ac' : 'ha';
   document.querySelectorAll('[data-area]').forEach(x => x.setAttribute('aria-pressed', x === b));
-  render(); if (state.measure) renderMeasure(); save();
+  render(); if (state.measure) renderMeasure(); updateMeasureBanner(); save();
 });
 document.querySelectorAll('[data-coord]').forEach(b => b.onclick = () => {
   state.coord = b.dataset.coord;
@@ -1322,7 +1377,7 @@ document.querySelectorAll('[data-coord]').forEach(b => b.onclick = () => {
 function updateSnapOut() {
   const c = map.getSize().divideBy(2);
   const m = map.distance(map.containerPointToLatLng(c), map.containerPointToLatLng(c.add([state.snapPx, 0])));
-  $('#snapOut').textContent = state.snap ? `${state.snapPx} px ≈ ${m < 10 ? nf(m, 1) : nf(m, 0)} m` : 'off';
+  $('#snapOut').textContent = state.snap ? `${state.snapPx} px ≈ ${toLU(m) < 10 ? nf(toLU(m), 1) : nf(toLU(m), 0)} ${LU()}` : 'off';
   $('#snapOut').title = 'Snap distance on screen, and what it equals on the ground at the current zoom';
 }
 
@@ -1375,11 +1430,19 @@ function setBase(name) {
   if (!map.hasLayer(bases[name])) bases[name].addTo(map);
   state.layer = name;
 }
+/** Give the three unit toggles the width of the widest one. */
+function equalizeToggles() {
+  const groups = [...document.querySelectorAll('.seg-row .segc')];
+  groups.forEach(g => { g.style.width = ''; });
+  const w = Math.max(...groups.map(g => g.getBoundingClientRect().width));
+  if (w > 0) groups.forEach(g => { g.style.width = Math.ceil(w) + 'px'; });
+}
 function syncSettingsUI() {
   $('#snapOn').checked = state.snap; $('#snapPx').value = state.snapPx; $('#snapPx').disabled = !state.snap;
-  $('#lenOn').checked = state.showLengths; $('#fillOn').checked = state.fill; $('#bFill').setAttribute('aria-pressed', state.fill);
+  $('#lenOn').checked = state.showLengths; $('#areaOn').checked = state.showAreas; $('#nameOn').checked = state.showNames; $('#fillOn').checked = state.fill; $('#bFill').setAttribute('aria-pressed', state.fill);
   document.querySelectorAll('[data-coord]').forEach(x => x.setAttribute('aria-pressed', x.dataset.coord === state.coord));
   document.querySelectorAll('[data-area]').forEach(x => x.setAttribute('aria-pressed', x.dataset.area === state.areaUnit));
+  document.querySelectorAll('[data-len]').forEach(x => x.setAttribute('aria-pressed', x.dataset.len === state.lenUnit));
   updateSnapOut();
 }
 
@@ -1410,7 +1473,7 @@ $('#bSaveProj').onclick = () => {
   const proj = {
     app: 'paddock-mapper', version: 1, saved: new Date().toISOString(),
     view: { lat: c.lat, lng: c.lng, zoom: map.getZoom() }, layer: state.layer,
-    settings: { snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit },
+    settings: { snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames },
     paddocks: state.paddocks.map(P => ({ id: P.id, name: P.name, color: P.color, locked: !!P.locked, ring: P.ring.map(v => v.auto ? { lat: v.lat, lng: v.lng, auto: true } : { lat: v.lat, lng: v.lng }) }))
   };
   download(`paddocks-${stamp()}.paddocks.json`, JSON.stringify(proj, null, 1), 'application/json');
@@ -1435,7 +1498,7 @@ $('#projIn').onchange = async e => {
   state.paddocks = paddocks; state.selected = null; state.selNode = null; state.draft = null;
   const st = d.settings || {};
   state.snap = st.snap !== false; state.snapPx = Math.min(40, Math.max(4, +st.snapPx || 14));
-  state.showLengths = st.showLengths !== false; state.coord = st.coord === 'mga' ? 'mga' : 'll'; state.fill = st.fillOn === true; state.areaUnit = st.areaUnit === 'ac' ? 'ac' : 'ha';
+  state.showLengths = st.showLengths !== false; state.coord = st.coord === 'mga' ? 'mga' : 'll'; state.fill = st.fillOn === true; state.areaUnit = st.areaUnit === 'ac' ? 'ac' : 'ha'; state.lenUnit = st.lenUnit === 'ft' ? 'ft' : 'm'; state.showAreas = st.showAreas !== false; state.showNames = st.showNames !== false;
   if (d.layer) setBase(d.layer);
   syncSettingsUI();
   stitch(); cleanup(); render();
@@ -1447,12 +1510,13 @@ $('#projIn').onchange = async e => {
 
 /* ----- quick measure ----- */
 function measureClick(latlng) {
+  if (Date.now() - closedAt < 500 && state.measure && state.measure.closed) return;
   let M = state.measure;
   if (!M || M.done || M.closed) M = state.measure = { pts: [], closed: false, done: false };
   if (M.pts.length >= 3) {
     const p0 = map.latLngToContainerPoint(M.pts[0]);
     if (p0.distanceTo(map.latLngToContainerPoint(latlng)) <= Math.max(state.snapPx, 12)) {
-      M.closed = true; M.done = true; showSnap(null); renderMeasure(); updateMeasureBanner(); return;
+      M.closed = true; M.done = true; closedAt = Date.now(); showSnap(null); renderMeasure(); updateMeasureBanner(); return;
     }
   }
   const s = findSnap(latlng);
@@ -1499,7 +1563,7 @@ function renderMeasure(cursor) {
   }
   if (!M.done) {
     const n = M.pts.length;
-    $('#mbMsg').innerHTML = `<b>${fmtM(pathLength(path))} m</b> · ${n} point${n === 1 ? '' : 's'}${n >= 3 ? ' · click the first point to measure an area' : ''}`;
+    $('#mbMsg').innerHTML = `<b>${fmtM(pathLength(path))} ${LU()}</b> · ${n} point${n === 1 ? '' : 's'}${n >= 3 ? ' · click the first point to measure an area' : ''}`;
   }
 }
 function updateMeasureBanner() {
@@ -1514,12 +1578,15 @@ function updateMeasureBanner() {
   const path = measurePath();
   const len = pathLength(path);
   if (M.closed) {
-    const a = polyMetrics(M.pts).area;
-    $('#mbMsg').innerHTML = `Area <b>${fmtArea(a)} ${areaU()}</b> · perimeter <b>${fmtM(len)} m</b>`;
+    const a = polyMetrics(M.pts).area, F = localFrame(M.pts[0]);
+    const crosses = ringSelfCrosses(M.pts.map(p => toXY(F, p)));
+    $('#mbMsg').innerHTML = crosses
+      ? `The lines cross, so there is no single area · perimeter <b>${fmtM(len)} ${LU()}</b>`
+      : `Area <b>${fmtArea(a)} ${areaU()}</b> · perimeter <b>${fmtM(len)} ${LU()}</b>`;
   } else if (M.done) {
-    $('#mbMsg').innerHTML = `Distance <b>${fmtM(len)} m</b> · ${n - 1} segment${n === 2 ? '' : 's'} · click to start a new measurement`;
+    $('#mbMsg').innerHTML = `Distance <b>${fmtM(len)} ${LU()}</b> · ${n - 1} segment${n === 2 ? '' : 's'} · click to start a new measurement`;
   } else {
-    $('#mbMsg').innerHTML = `<b>${fmtM(len)} m</b> · ${n} point${n === 1 ? '' : 's'}${n >= 3 ? ' · click the first point to measure an area' : ''}`;
+    $('#mbMsg').innerHTML = `<b>${fmtM(len)} ${LU()}</b> · ${n} point${n === 1 ? '' : 's'}${n >= 3 ? ' · click the first point to measure an area' : ''}`;
   }
 }
 $('#bMeasure').onclick = () => setMode(state.mode === 'measure' ? 'view' : 'measure');
@@ -1592,7 +1659,7 @@ async function openProfile(path, title, vertexLabels) {
   $('#profile').hidden = false;
   $('.mapwrap').classList.add('pf-open');
   $('#pfTitle').textContent = title;
-  $('#pfSrc').textContent = `${fmtM(smp.L)} m along the line`;
+  $('#pfSrc').textContent = `${fmtM(smp.L)} ${LU()} along the line`;
   $('#pfStats').innerHTML = '';
   $('#pfChart').innerHTML = '<div class="pf-msg">Loading elevations…</div>';
   profLayer.clearLayers();
@@ -1631,7 +1698,7 @@ function drawProfile() {
   const box = $('#pfChart');
   const W = box.clientWidth, H = box.clientHeight;
   if (W < 50 || H < 40) return;
-  const { d, e } = prof, T = prof.L;
+  const d = prof.d.map(toLU), e = prof.e.map(toLU), T = toLU(prof.L), U = LU();
   // stats
   let climb = 0, fall = 0, slope = 0, maxG = 0, maxGi = 0;
   for (let i = 1; i < e.length; i++) {
@@ -1644,19 +1711,19 @@ function drawProfile() {
   const emin = Math.min(...e), emax = Math.max(...e);
   $('#pfSrc').textContent = prof.src;
   $('#pfStats').innerHTML = `
-    <div><span class="k">Map length</span><b>${fmtM(T)} m</b></div>
-    <div><span class="k">Slope length</span><b>${fmtM(slope)} m</b></div>
-    <div><span class="k">Elevation</span><b>${nf(emin, 0)}–${nf(emax, 0)} m</b></div>
-    <div class="opt"><span class="k">Rise / fall</span><b>+${nf(climb, 1)} / −${nf(fall, 1)} m</b></div>
+    <div><span class="k">Map length</span><b>${nf(T, 1)} ${U}</b></div>
+    <div><span class="k">Slope length</span><b>${nf(slope, 1)} ${U}</b></div>
+    <div><span class="k">Elevation</span><b>${nf(emin, 0)}–${nf(emax, 0)} ${U}</b></div>
+    <div class="opt"><span class="k">Rise / fall</span><b>+${nf(climb, 1)} / ${fall >= 0.05 ? '−' : ''}${nf(fall, 1)} ${U}</b></div>
     <div class="opt"><span class="k">Steepest</span><b>${nf(maxG, 1)} %</b></div>`;
 
   const m = { l: 44, r: 10, t: 16, b: 20 };
-  const span = Math.max(emax - emin, 4), mid = (emax + emin) / 2;
+  const span = Math.max(emax - emin, U === 'm' ? 4 : 13), mid = (emax + emin) / 2;
   const lo = mid - span * 0.62, hi = mid + span * 0.62;
   const X = v => m.l + (T ? v / T : 0) * (W - m.l - m.r);
   const Y = v => m.t + (hi - v) / (hi - lo) * (H - m.t - m.b);
-  const km = T >= 2000;
-  const xl = v => km ? nf(v / 1000, v % 1000 ? 1 : 0) + ' km' : nf(v, 0) + ' m';
+  const km = U === 'm' && T >= 2000;
+  const xl = v => km ? nf(v / 1000, v % 1000 ? 1 : 0) + ' km' : nf(v, 0) + ' ' + U;
   let g = '';
   for (const v of ticks(lo, hi, 3)) {
     if (v < lo || v > hi) continue;
@@ -1669,7 +1736,7 @@ function drawProfile() {
     g += `<text class="pf-axis" x="${X(v).toFixed(1)}" y="${H - 4}" text-anchor="${anchor}">${xl(v)}</text>`;
   }
   // corners / points along the path
-  const vd = prof.vertexD, labs = prof.vertexLabels || [];
+  const vd = prof.vertexD.map(toLU), labs = prof.vertexLabels || [];
   let lastLx = -99;
   vd.forEach((v, i) => {
     const x = X(v);
@@ -1686,7 +1753,7 @@ function drawProfile() {
   g += `<line class="pf-grid" x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}"/>`;
   g += `<g id="pfHover" style="display:none"><line class="pf-cross" id="pfCross" y1="${m.t}" y2="${H - m.b}"/><circle class="pf-dot" id="pfDot" r="4.5"/></g>`;
   g += `<rect class="pf-hit" id="pfHit" x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H}"/>`;
-  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Elevation profile, ${nf(emin, 0)} to ${nf(emax, 0)} metres over ${fmtM(T)} metres">${g}</svg><div class="pf-tip" id="pfTip" hidden></div>`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Elevation profile, ${nf(emin, 0)} to ${nf(emax, 0)} ${U === 'm' ? 'metres' : 'feet'} over ${nf(T, 1)} ${U === 'm' ? 'metres' : 'feet'}">${g}</svg><div class="pf-tip" id="pfTip" hidden></div>`;
 
   const hit = $('#pfHit'), hov = $('#pfHover'), tip = $('#pfTip');
   let hm = null;
@@ -1702,7 +1769,7 @@ function drawProfile() {
     const j = Math.min(i + 1, e.length - 1), k0 = j === i ? i - 1 : i;
     const grade = d[j] - d[k0] > 0 ? (e[j] - e[k0]) / (d[j] - d[k0]) * 100 : 0;
     tip.hidden = false;
-    tip.innerHTML = `${km ? nf(d[i] / 1000, 2) + ' km' : nf(d[i], 0) + ' m'} · ${nf(e[i], 1)} m<br>grade ${grade >= 0 ? '+' : '−'}${nf(Math.abs(grade), 1)} %`;
+    tip.innerHTML = `${km ? nf(d[i] / 1000, 2) + ' km' : nf(d[i], 0) + ' ' + U} · ${nf(e[i], 1)} ${U}<br>grade ${grade >= 0 ? '+' : '−'}${nf(Math.abs(grade), 1)} %`;
     tip.style.left = Math.max(60, Math.min(W - 60, px)) + 'px';
     tip.style.top = Math.max(34, py) + 'px';
     if (!hm) hm = L.circleMarker(prof.pts[i], { radius: 7, color: '#fff', weight: 3, fillColor: '#111', fillOpacity: 1, interactive: false }).addTo(profLayer);
@@ -1723,7 +1790,7 @@ map.on('click', e => {
   if (state.selected) { state.selected = null; render(); }
 });
 map.on('dblclick', () => {
-  if (state.mode === 'draw' && state.draft && state.draft.pts.length >= 3) finishDraft();
+  if (state.mode === 'draw' && state.draft && state.draft.pts.length >= 3) { closedAt = Date.now(); finishDraft(); }
   if (state.mode === 'measure') endMeasureLine();
 });
 map.on('mousemove', e => {
@@ -1741,7 +1808,7 @@ map.on('mousemove', e => {
   showSnap(s);
   renderDraft(cur);
   if (state.draft && state.draft.pts.length) {
-    $('#bannerMsg').innerHTML = `<b>${state.draft.pts.length}</b> corner${state.draft.pts.length > 1 ? 's' : ''} · <b>${fmtM(draftLength(cur))} m</b> of fence${state.draft.pts.length >= 3 ? ' · click the first corner to close' : ''}`;
+    $('#bannerMsg').innerHTML = `<b>${state.draft.pts.length}</b> corner${state.draft.pts.length > 1 ? 's' : ''} · <b>${fmtM(draftLength(cur))} ${LU()}</b> of fence${state.draft.pts.length >= 3 ? ' · click the first corner to close' : ''}`;
   }
 });
 map.on('mouseout', () => {
@@ -1797,7 +1864,7 @@ function save() {
     const c = map.getCenter();
     localStorage.setItem(STORE, JSON.stringify({
       paddocks: state.paddocks, view: [c.lat, c.lng, map.getZoom()], base: state.layer,
-      snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit
+      snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames
     }));
   } catch { /* storage unavailable: work continues in memory */ }
 }
@@ -1805,38 +1872,50 @@ function save() {
 function load() {
   let d = null;
   try { d = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch { d = null; }
-  if (d && Array.isArray(d.paddocks)) {
-    Object.assign(state, {
-      paddocks: sanitizePaddocks(d.paddocks), layer: bases[d.base] ? d.base : state.layer,
-      snap: d.snap !== false, snapPx: Math.min(40, Math.max(4, +d.snapPx || 14)), showLengths: d.showLengths !== false, coord: d.coord === 'mga' ? 'mga' : 'll',
-      fill: d.fillOn === true, areaUnit: d.areaUnit === 'ac' ? 'ac' : 'ha'
-    });
-    if (Array.isArray(d.view) && d.view.length === 3 && d.view.every(v => typeof v === 'number' && isFinite(v)) && Math.abs(d.view[0]) <= 90) {
-      map.setView([d.view[0], d.view[1]], Math.min(21, Math.max(2, d.view[2])));
-      viewRestored = true;
-    }
-    return true;
+  if (!d || typeof d !== 'object') return false;
+  // settings are kept even when there are no saved paddocks
+  Object.assign(state, {
+    layer: bases[d.base] ? d.base : state.layer,
+    snap: d.snap !== false, snapPx: Math.min(40, Math.max(4, +d.snapPx || 14)), showLengths: d.showLengths !== false, coord: d.coord === 'mga' ? 'mga' : 'll',
+    fill: d.fillOn === true, areaUnit: d.areaUnit === 'ac' ? 'ac' : 'ha', lenUnit: d.lenUnit === 'ft' ? 'ft' : 'm', showAreas: d.showAreas !== false, showNames: d.showNames !== false
+  });
+  const paddocks = sanitizePaddocks(d.paddocks);
+  if (!paddocks.length) return false;           // nothing saved: open with the example paddocks
+  state.paddocks = paddocks;
+  if (Array.isArray(d.view) && d.view.length === 3 && d.view.every(v => typeof v === 'number' && isFinite(v)) && Math.abs(d.view[0]) <= 90) {
+    map.setView([d.view[0], d.view[1]], Math.min(21, Math.max(2, d.view[2])));
+    viewRestored = true;
   }
-  return false;
+  return true;
 }
 
-/* ================= start ================= */
-const had = load();
-if (!had) {
-  state.paddocks = [
+function exampleData() {
+  return [
     { id: uid(), name: 'Example West', color: COLORS[0], ring: [
       { lat: -34.5800, lng: 146.0000 }, { lat: -34.5800, lng: 146.0049 }, { lat: -34.5845, lng: 146.0049 }, { lat: -34.5845, lng: 146.0000 }] },
     { id: uid(), name: 'Example East', color: COLORS[1], ring: [
       { lat: -34.5800, lng: 146.0049 }, { lat: -34.5798, lng: 146.0096 }, { lat: -34.5832, lng: 146.0105 }, { lat: -34.5847, lng: 146.0070 }, { lat: -34.5845, lng: 146.0049 }] }
   ];
+}
+function showExamples() {
+  state.paddocks = exampleData();
   state.selected = state.paddocks[0].id;
 }
+
+/* ================= start ================= */
+equalizeToggles();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(equalizeToggles);
+const had = load();
+if (!had) showExamples();
 setBase(state.layer);
 syncSettingsUI();
 stitch(); cleanup();
 render();
-if (had && !viewRestored && state.paddocks.length) map.fitBounds(L.latLngBounds(state.paddocks.flatMap(p => p.ring)), { padding: [40, 40] });
-if (!had) {
+if (had) {
+  // fit to the saved paddocks if no view was saved, or the saved view shows none of them
+  const all = L.latLngBounds(state.paddocks.flatMap(p => p.ring));
+  if (!viewRestored || !map.getBounds().intersects(all)) map.fitBounds(all, { padding: [40, 40] });
+} else {
   map.fitBounds(L.latLngBounds([DARLINGTON_POINT, ...state.paddocks.flatMap(p => p.ring)]), { padding: [60, 60] });
   toast('Two example paddocks are loaded. Use Clear all to start your own.');
 }
