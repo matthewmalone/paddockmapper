@@ -78,7 +78,7 @@ button,input{font:inherit;color:inherit}
   .mapwrap.pf-open .banner{bottom:226px}
 }
 tr[data-seg]{cursor:pointer}
-.toast{position:absolute;z-index:900;left:50%;top:62px;transform:translateX(-50%);background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:8px 14px;border-radius:8px;box-shadow:0 4px 14px rgb(0 0 0/.2);font-size:14px;max-width:calc(100% - 32px)}
+.toast{position:absolute;z-index:900;left:50%;top:112px;transform:translateX(-50%);background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:8px 14px;border-radius:8px;box-shadow:0 4px 14px rgb(0 0 0/.2);font-size:14px;max-width:calc(100% - 32px)}
 
 /* ---------- map overlays (fixed colours: they sit on imagery in both themes) ---------- */
 .mode-draw.leaflet-container,.mode-draw .leaflet-interactive{cursor:crosshair!important}
@@ -87,6 +87,7 @@ tr[data-seg]{cursor:pointer}
 .plabel{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;text-align:center;font:700 14px/1.1 var(--f-head);color:#fff;text-shadow:0 0 3px #000,0 0 2px #000,0 0 1px #000;pointer-events:none;letter-spacing:.02em}
 .plabel span{display:block;font:500 12px/1.3 var(--f-mono)}
 .slabel{position:absolute;left:0;top:0;white-space:nowrap;font:500 11.5px/1.2 var(--f-mono);color:#121614;background:rgb(255 255 255/.88);padding:1px 5px;border-radius:3px;pointer-events:none}
+.slabel.ref{background:#111;color:#fff}
 .slabel.live{background:#111;color:#fff}
 .clabel{position:absolute;transform:translate(7px,-21px);font:600 11px/1 var(--f-mono);color:#fff;background:#121614;padding:2px 4px;border-radius:3px;pointer-events:none}
 .vh{border-radius:50%;background:#fff;border:2.5px solid #161A18;box-shadow:0 0 0 1.5px rgb(255 255 255/.75),0 1px 4px rgb(0 0 0/.4)}
@@ -193,6 +194,12 @@ tr[data-seg]:hover td,tr[data-cor]:hover td{background:var(--soft)}
       <button class="tool" id="bMeasure" aria-pressed="false" title="Measure a distance or area (M)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="8" width="19" height="8" rx="1"/><path d="M6.5 8v3.5M10.5 8v2M14.5 8v3.5M18.5 8v2" stroke-linecap="round"/></svg>
         <span>Measure</span><kbd>M</kbd></button>
+      <button class="tool" id="bStraight" aria-pressed="false" title="Give fences the same bearing as a reference fence (S)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7h18"/><path d="M3 17h18" stroke-dasharray="3 3"/><path d="m16 13 3 4-3 4" stroke-width="1.6"/></svg>
+        <span>Straighten</span><kbd>S</kbd></button>
+      <button class="tool" id="bMatch" aria-pressed="false" title="Give fences the same length as a reference fence (L)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 4v6M20 4v6"/><path d="M4 17h16M4 14v6M20 14v6" stroke-dasharray="3 3"/></svg>
+        <span>Match length</span><kbd>L</kbd></button>
       <button class="tool" id="bDelNode" disabled title="Delete the selected corner (Delete)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
         <span>Delete corner</span></button>
@@ -215,6 +222,13 @@ tr[data-seg]:hover td,tr[data-cor]:hover td{background:var(--soft)}
         <button id="bnUndo">Remove last</button>
         <button id="bnFinish" class="go">Finish</button>
         <button id="bnStop">Stop</button>
+      </div>
+    </div>
+    <div class="banner" id="sbanner" hidden>
+      <div class="msg" id="sbMsg"></div>
+      <div class="acts">
+        <button id="sbReset" hidden>New reference</button>
+        <button id="sbStop" class="go">Done</button>
       </div>
     </div>
     <div class="banner" id="mbanner" hidden>
@@ -315,6 +329,8 @@ tr[data-seg]:hover td,tr[data-cor]:hover td{background:var(--soft)}
       <p><kbd>D</kbd> draw · click to place corners · click the first corner, double-click or <kbd>Enter</kbd> to close · <kbd>Backspace</kbd> removes the last corner · <kbd>Esc</kbd> stops.</p>
       <p><kbd>M</kbd> measure · click points to measure a distance; click the first point to close it and get an area · double-click or <kbd>Enter</kbd> ends a line · <b>Elevation</b> shows the ground profile along it.</p>
       <p>Lock a paddock with the padlock on its card: its corners can't be moved or deleted, and it can't be deleted or cleared until unlocked. Names and colours stay editable. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>Ctrl</kbd>+<kbd>Y</kbd> redo.</p>
+      <p><kbd>S</kbd> straighten · click a fence to use as the reference, then click other fences to give them the same bearing (or the exact opposite). The end nearer the reference stays put and the other corner moves the shortest distance onto the new line.</p>
+      <p><kbd>L</kbd> match length · click a fence to use as the reference, then hover another fence near the corner you want to move (a ring marks it) and click; that corner slides along the fence, keeping its bearing, until the fence is the same length.</p>
       <p><kbd>E</kbd> edit · drag a corner to move it (shared corners move together) · drag a small midpoint dot to add a corner · right-click or <kbd>Delete</kbd> removes a corner · hold <kbd>Alt</kbd> while dragging to separate a shared corner from the selected paddock.</p>
       <p>Elevation profiles use SRTM 30 m satellite elevation data (Open Topo Data), falling back to Copernicus 90 m (Open-Meteo). They show the lie of the land well, but individual heights can be out by a few metres, so they are for planning, not survey levels.</p>
       <p>Lengths and bearings are on the WGS84 ellipsoid (Vincenty), bearings are true. MGA coordinates use GRS80; GDA2020 and WGS84 positions agree to within about 1–2 m, which is less than typical imagery error.</p>
@@ -361,6 +377,31 @@ function vincenty(p1, p2) {
   const dS = B * sinS * (cos2Sm + B / 4 * (cosS * (-1 + 2 * cos2Sm * cos2Sm) - B / 6 * cos2Sm * (-3 + 4 * sinS * sinS) * (-3 + 4 * cos2Sm * cos2Sm)));
   const brg = (Math.atan2(cU2 * sinL, cU1 * sU2 - sU1 * cU2 * cosL) / DEG + 360) % 360;
   return { d: b * A * (sig - dS), brg };
+}
+
+/** Point reached from p along a geodesic with initial bearing brg (deg) and length s (m) on WGS84, Vincenty direct. */
+function vincentyDirect(p, brg, s) {
+  const a = 6378137, f = 1 / 298.257223563, b = a * (1 - f);
+  const al1 = brg * DEG, sa1 = Math.sin(al1), ca1 = Math.cos(al1);
+  const tanU1 = (1 - f) * Math.tan(p.lat * DEG), cU1 = 1 / Math.sqrt(1 + tanU1 * tanU1), sU1 = tanU1 * cU1;
+  const sig1 = Math.atan2(tanU1, ca1);
+  const sA = cU1 * sa1, c2A = 1 - sA * sA;
+  const u2 = c2A * (a * a - b * b) / (b * b);
+  const A = 1 + u2 / 16384 * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)));
+  const B = u2 / 1024 * (256 + u2 * (-128 + u2 * (74 - 47 * u2)));
+  let sig = s / (b * A), sigP, c2sm, ss, cs, it = 0;
+  do {
+    c2sm = Math.cos(2 * sig1 + sig); ss = Math.sin(sig); cs = Math.cos(sig);
+    const dS = B * ss * (c2sm + B / 4 * (cs * (-1 + 2 * c2sm * c2sm) - B / 6 * c2sm * (-3 + 4 * ss * ss) * (-3 + 4 * c2sm * c2sm)));
+    sigP = sig; sig = s / (b * A) + dS;
+  } while (Math.abs(sig - sigP) > 1e-12 && ++it < 100);
+  c2sm = Math.cos(2 * sig1 + sig); ss = Math.sin(sig); cs = Math.cos(sig);
+  const x = sU1 * ss - cU1 * cs * ca1;
+  const lat2 = Math.atan2(sU1 * cs + cU1 * ss * ca1, (1 - f) * Math.sqrt(sA * sA + x * x));
+  const lam = Math.atan2(ss * sa1, cU1 * cs - sU1 * ss * ca1);
+  const C = f / 16 * c2A * (4 + f * (4 - 3 * c2A));
+  const Lx = lam - (1 - C) * f * sA * (sig + C * ss * (c2sm + C * cs * (-1 + 2 * c2sm * c2sm)));
+  return { lat: lat2 / DEG, lng: p.lng + Lx / DEG };
 }
 
 /** Transverse Mercator (UTM / MGA) on GRS80 using the Krüger n-series. */
@@ -514,6 +555,8 @@ const fmtHa = m2 => nf(m2 / 1e4, 2);
 const SQM_PER_ACRE = 4046.8564224;
 const areaU = () => state.areaUnit === 'ac' ? 'ac' : 'ha';
 const fmtArea = m2 => nf(state.areaUnit === 'ac' ? m2 / SQM_PER_ACRE : m2 / 1e4, 2);
+/** Bearing to 4 decimals, never shown as 360.0000. */
+const fmtBrg = b => { let v = +(((b % 360) + 360) % 360).toFixed(4); if (v >= 360) v -= 360; return v.toFixed(4); };
 const fmtMapLen = n => { const v = toLU(n); return (v < 100 ? nf(v, 1) : nf(v, 0)) + ' ' + LU(); };
 function dms(b) {
   let t = Math.round(b * 3600); t = ((t % 1296000) + 1296000) % 1296000;
@@ -560,10 +603,11 @@ const measureLayer = L.layerGroup().addTo(map);
 const profLayer = L.layerGroup().addTo(map);
 const handleLayer = L.layerGroup().addTo(map);
 const dragLayer = L.layerGroup().addTo(map);
+const straightLayer = L.layerGroup().addTo(map);
 const snapRing = L.circleMarker([0, 0], { radius: 10, color: '#111', weight: 3, fillColor: '#fff', fillOpacity: .45, interactive: false });
 let locMarker = null;
 
-['tools', 'banner', 'mbanner', 'profile', 'toast'].forEach(id => {
+['tools', 'banner', 'sbanner', 'mbanner', 'profile', 'toast'].forEach(id => {
   L.DomEvent.disableClickPropagation(document.getElementById(id));
   L.DomEvent.disableScrollPropagation(document.getElementById(id));
 });
@@ -752,7 +796,7 @@ function render() {
       fillColor: P.color, fillOpacity: state.fill ? (sel ? 0.16 : 0.1) : 0, className: 'pdk'
     }).addTo(polyLayer);
     pl.on('click', e => {
-      if (state.mode === 'draw' || state.mode === 'measure') return;
+      if (state.mode === 'draw' || state.mode === 'measure' || state.mode === 'straighten' || state.mode === 'match') return;
       L.DomEvent.stop(e);
       select(P.id);
     });
@@ -1047,17 +1091,21 @@ function createPaddock(pts) {
 function setMode(m) {
   if (state.mode === 'draw' && m !== 'draw') { state.draft = null; draftLayer.clearLayers(); }
   if (state.mode === 'measure' && m !== 'measure') { state.measure = null; measureLayer.clearLayers(); }
+  if (state.mode !== m) { straightRef = null; matchRef = null; straightLayer.clearLayers(); }
   state.mode = m;
   if (m !== 'edit') state.selNode = null;
   showSnap(null);
   const c = map.getContainer();
-  c.classList.toggle('mode-draw', m === 'draw' || m === 'measure');
+  c.classList.toggle('mode-draw', m === 'draw' || m === 'measure' || m === 'straighten' || m === 'match');
   if (m === 'draw' || m === 'measure') map.doubleClickZoom.disable(); else map.doubleClickZoom.enable();
   $('#bDraw').setAttribute('aria-pressed', m === 'draw');
   $('#bEdit').setAttribute('aria-pressed', m === 'edit');
   $('#bMeasure').setAttribute('aria-pressed', m === 'measure');
+  $('#bStraight').setAttribute('aria-pressed', m === 'straighten');
+  $('#bMatch').setAttribute('aria-pressed', m === 'match');
   updateBanner();
   updateMeasureBanner();
+  updateStraightBanner();
   render();
 }
 
@@ -1151,7 +1199,7 @@ function renderSide() {
     if (!sel) return `<article class="card" data-id="${P.id}">${head}${warnLine}</article>`;
     const fenceRows = st.segs.map((s, i) => `<tr data-seg="${i}">
         <td>F${i + 1}</td><td>C${i + 1}→C${(i + 1) % st.segs.length + 1}</td>
-        <td class="r">${nf(toLU(s.d), 2)}</td><td class="r">${s.brg.toFixed(4).padStart(8, '0')}°</td>
+        <td class="r">${nf(toLU(s.d), 2)}</td><td class="r">${fmtBrg(s.brg).padStart(8, '0')}°</td>
         <td>${s.shared.length ? s.shared.map(n => `<span class="tag">${esc(n)}</span>`).join(' ') : ''}</td></tr>`).join('');
     const corRows = P.ring.map((v, i) => {
       if (state.coord === 'mga') { const u = toUTM(v.lat, v.lng, S.zone); return `<tr data-cor="${i}"><td>C${i + 1}</td><td class="r">${nf(u.E, 2).replace(/,/g, ' ')}</td><td class="r">${nf(u.N, 2).replace(/,/g, ' ')}</td></tr>`; }
@@ -1268,7 +1316,7 @@ const stamp = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 function fenceRows() {
   const rows = [['paddock', 'fence', 'from_corner', 'to_corner', 'from_lat', 'from_lon', 'to_lat', 'to_lon', 'length_m', 'length_ft', 'bearing_true_deg', 'bearing_true_dms', 'shared_with']];
   for (const P of state.paddocks) S.per.get(P.id).segs.forEach((s, i, a) => rows.push([P.name, 'F' + (i + 1), 'C' + (i + 1), 'C' + ((i + 1) % a.length + 1),
-    s.a.lat.toFixed(7), s.a.lng.toFixed(7), s.b.lat.toFixed(7), s.b.lng.toFixed(7), s.d.toFixed(2), (s.d / FT).toFixed(2), s.brg.toFixed(4), dms(s.brg), s.shared.join('; ')]));
+    s.a.lat.toFixed(7), s.a.lng.toFixed(7), s.b.lat.toFixed(7), s.b.lng.toFixed(7), s.d.toFixed(2), (s.d / FT).toFixed(2), fmtBrg(s.brg), dms(s.brg), s.shared.join('; ')]));
   return rows;
 }
 function cornerRows() {
@@ -1319,7 +1367,7 @@ function kml() {
 function paddockTSV(P) {
   const st = S.per.get(P.id);
   const lines = [`${P.name}\t${fmtArea(st.area)} ${areaU()}\tperimeter ${toLU(st.perim).toFixed(2)} ${LU()}`, '', `Fence\tFrom\tTo\tLength ${LU()}\tBearing deg true\tShared with`];
-  st.segs.forEach((s, i, a) => lines.push(`F${i + 1}\tC${i + 1}\tC${(i + 1) % a.length + 1}\t${toLU(s.d).toFixed(2)}\t${s.brg.toFixed(4)}\t${s.shared.join('; ')}`));
+  st.segs.forEach((s, i, a) => lines.push(`F${i + 1}\tC${i + 1}\tC${(i + 1) % a.length + 1}\t${toLU(s.d).toFixed(2)}\t${fmtBrg(s.brg)}\t${s.shared.join('; ')}`));
   lines.push('', `Corner\tLatitude\tLongitude\tEasting\tNorthing (zone ${S.zone})`);
   P.ring.forEach((v, i) => { const u = toUTM(v.lat, v.lng, S.zone); lines.push(`C${i + 1}\t${v.lat.toFixed(7)}\t${v.lng.toFixed(7)}\t${u.E.toFixed(3)}\t${u.N.toFixed(3)}`); });
   return lines.join('\n');
@@ -1577,6 +1625,152 @@ $('#projIn').onchange = async e => {
   save();
   toast(`Opened ${f.name}: ${paddocks.length} paddock${paddocks.length === 1 ? '' : 's'}`);
 };
+
+/* ----- straighten: give fences the reference fence's bearing ----- */
+let straightRef = null;   // { a, b, brg, name }
+const wrap180 = x => ((x + 540) % 360) - 180;
+
+/** The fence (paddock edge) nearest a map point, within a few pixels. */
+function nearestFence(latlng) {
+  const pt = map.latLngToContainerPoint(latlng), tol = COARSE ? 18 : 12;
+  let best = null, bd = tol;
+  for (const P of state.paddocks) {
+    const n = P.ring.length;
+    for (let i = 0; i < n; i++) {
+      const a = P.ring[i], b = P.ring[(i + 1) % n];
+      const pa = map.latLngToContainerPoint(a), pb = map.latLngToContainerPoint(b);
+      const r = segProj([pt.x, pt.y], [pa.x, pa.y], [pb.x, pb.y]);
+      if (r.d < bd) { bd = r.d; best = { P, i, a, b }; }
+    }
+  }
+  return best;
+}
+
+function renderStraight(hover) {
+  straightLayer.clearLayers();
+  const R = state.mode === 'match' ? matchRef : straightRef;
+  if (R) {
+    L.polyline([R.a, R.b], { color: '#fff', weight: 9, opacity: .9, interactive: false }).addTo(straightLayer);
+    L.polyline([R.a, R.b], { color: '#111', weight: 4, interactive: false }).addTo(straightLayer);
+    const pa = map.latLngToLayerPoint(R.a), pb = map.latLngToLayerPoint(R.b);
+    let ang = Math.atan2(pb.y - pa.y, pb.x - pa.x) / DEG;
+    if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
+    const txt = state.mode === 'match' ? `Reference ${nf(toLU(R.len), 2)} ${LU()}` : `Reference ${fmtBrg(R.brg).padStart(8, '0')}°`;
+    divMarker({ lat: (R.a.lat + R.b.lat) / 2, lng: (R.a.lng + R.b.lng) / 2 },
+      `<div class="slabel ref" style="transform:translate(-50%,-50%) rotate(${ang.toFixed(1)}deg) translateY(-16px)">${txt}</div>`).addTo(straightLayer);
+  }
+  if (hover) {
+    L.polyline([hover.a, hover.b], { color: '#fff', weight: 8, opacity: .55, interactive: false }).addTo(straightLayer);
+    L.polyline([hover.a, hover.b], { color: '#111', weight: 2.5, dashArray: '6 5', interactive: false }).addTo(straightLayer);
+    // Match length: mark the corner that will move
+    if (state.mode === 'match' && matchRef && hover.cursor) {
+      const mv = matchEnds(hover, hover.cursor).mov;
+      L.circleMarker(mv, { radius: 9, color: '#111', weight: 3, fillColor: '#fff', fillOpacity: .9, interactive: false }).addTo(straightLayer);
+    }
+  }
+}
+
+function updateStraightBanner() {
+  const b = $('#sbanner');
+  if (state.mode !== 'straighten' && state.mode !== 'match') { b.hidden = true; return; }
+  b.hidden = false;
+  if (state.mode === 'match') {
+    $('#sbReset').hidden = !matchRef;
+    $('#sbMsg').innerHTML = matchRef
+      ? `Reference <b>${nf(toLU(matchRef.len), 2)} ${LU()}</b> (${esc(matchRef.name)}). Hover near the corner to move (it shows a ring), then click.`
+      : 'Click the fence to use as the reference length.';
+    return;
+  }
+  $('#sbReset').hidden = !straightRef;
+  $('#sbMsg').innerHTML = straightRef
+    ? `Reference <b>${fmtBrg(straightRef.brg).padStart(8, '0')}°</b> (${esc(straightRef.name)}). Click fences to give them this bearing.`
+    : 'Click the fence to use as the reference bearing.';
+}
+
+function straightenClick(latlng) {
+  const f = nearestFence(latlng);
+  if (!f) { toast(straightRef ? 'Click closer to a fence line' : 'Click on a fence line to pick the reference'); return; }
+  if (!straightRef) {
+    straightRef = { a: { lat: f.a.lat, lng: f.a.lng }, b: { lat: f.b.lat, lng: f.b.lng }, brg: vincenty(f.a, f.b).brg,
+      name: `${f.P.name} F${f.i + 1}` };
+    renderStraight(); updateStraightBanner();
+    return;
+  }
+  if (key(f.a) + key(f.b) === key(straightRef.a) + key(straightRef.b) || key(f.b) + key(f.a) === key(straightRef.a) + key(straightRef.b)) {
+    toast('That is the reference fence'); return;
+  }
+  // the end nearer the reference line stays put
+  const F0 = localFrame(straightRef.a);
+  const ra = toXY(F0, straightRef.a), rb = toXY(F0, straightRef.b);
+  const da = segProj(toXY(F0, f.a), ra, rb).d, db = segProj(toXY(F0, f.b), ra, rb).d;
+  const fixedIsStart = da <= db;
+  const fixed = fixedIsStart ? f.a : f.b, mov = fixedIsStart ? f.b : f.a;
+  // every paddock corner at the moving point moves with it
+  const mk = key(mov), members = [];
+  for (const P of state.paddocks) P.ring.forEach((v, i) => { if (key(v) === mk) members.push({ P, i }); });
+  const locked = [...new Set(members.filter(m => m.P.locked).map(m => m.P.name))];
+  if (locked.length) { toast(`${locked.join(', ')} is locked, so that corner can't move`); return; }
+  // table bearing of this fence runs from ring[i] to ring[i+1]; aim it at the reference bearing or its reverse
+  const tableBrg = q => fixedIsStart ? vincenty(fixed, q).brg : vincenty(q, fixed).brg;
+  const cur = tableBrg(mov);
+  const want = Math.abs(wrap180(straightRef.brg - cur)) <= 90 ? straightRef.brg : (straightRef.brg + 180) % 360;
+  const F = localFrame(fixed), m0 = toXY(F, mov);
+  let phi = vincenty(fixed, mov).brg, target = null;
+  for (let it = 0; it < 6; it++) {
+    const ux = Math.sin(phi * DEG), uy = Math.cos(phi * DEG);
+    const t = m0[0] * ux + m0[1] * uy;
+    if (t <= 0.01) { toast('That fence is at right angles to the reference, so there is no nearby position on the same bearing'); return; }
+    target = fromXY(F, ux * t, uy * t);
+    const err = wrap180(want - tableBrg(target));
+    if (Math.abs(err) < 1e-9) break;
+    phi += err;
+  }
+  if (Math.abs(wrap180(want - cur)) < 1e-7) { toast('Already on that bearing'); return; }
+  const shift = vincenty(mov, target).d;
+  pushUndo();
+  for (const m of members) m.P.ring[m.i] = { lat: target.lat, lng: target.lng };
+  stitch(); cleanup(); render(); save();
+  renderStraight(); updateStraightBanner();
+  toast(`${f.P.name} F${f.i + 1} set to ${fmtBrg(tableBrg(target)).padStart(8, '0')}° · corner moved ${nf(toLU(shift), shift < 1 ? 2 : 1)} ${LU()}`);
+}
+$('#bStraight').onclick = () => setMode(state.mode === 'straighten' ? 'view' : 'straighten');
+$('#sbStop').onclick = () => setMode('view');
+$('#sbReset').onclick = () => { straightRef = null; matchRef = null; renderStraight(); updateStraightBanner(); };
+
+/* ----- match length: give fences the reference fence's length ----- */
+let matchRef = null;   // { a, b, len, name }
+/** For a fence and the pointer position: the corner nearer the pointer moves, the other stays. */
+function matchEnds(f, at) {
+  const p = map.latLngToContainerPoint(at);
+  const movA = p.distanceTo(map.latLngToContainerPoint(f.a)) < p.distanceTo(map.latLngToContainerPoint(f.b));
+  return movA ? { mov: f.a, fixed: f.b } : { mov: f.b, fixed: f.a };
+}
+function matchClick(latlng) {
+  const f = nearestFence(latlng);
+  if (!f) { toast(matchRef ? 'Click closer to a fence line' : 'Click on a fence line to pick the reference'); return; }
+  if (!matchRef) {
+    matchRef = { a: { lat: f.a.lat, lng: f.a.lng }, b: { lat: f.b.lat, lng: f.b.lng }, len: vincenty(f.a, f.b).d, name: `${f.P.name} F${f.i + 1}` };
+    renderStraight(); updateStraightBanner();
+    return;
+  }
+  const same = (key(f.a) === key(matchRef.a) && key(f.b) === key(matchRef.b)) || (key(f.a) === key(matchRef.b) && key(f.b) === key(matchRef.a));
+  if (same) { toast('That is the reference fence'); return; }
+  const { mov, fixed } = matchEnds(f, latlng);
+  const cur = vincenty(fixed, mov);
+  if (Math.abs(cur.d - matchRef.len) < 0.0005) { toast('Already that length'); return; }
+  const mk = key(mov), members = [];
+  for (const P of state.paddocks) P.ring.forEach((v, i) => { if (key(v) === mk) members.push({ P, i }); });
+  const locked = [...new Set(members.filter(m => m.P.locked).map(m => m.P.name))];
+  if (locked.length) { toast(`${locked.join(', ')} is locked, so that corner can't move`); return; }
+  const target = vincentyDirect(fixed, cur.brg, matchRef.len);   // same direction, new length
+  const shift = vincenty(mov, target).d;
+  pushUndo();
+  for (const m of members) m.P.ring[m.i] = { lat: target.lat, lng: target.lng };
+  stitch(); cleanup(); render(); save();
+  renderStraight(); updateStraightBanner();
+  toast(`${f.P.name} F${f.i + 1} set to ${nf(toLU(vincenty(fixed, target).d), 2)} ${LU()} · corner moved ${nf(toLU(shift), shift < 1 ? 2 : 1)} ${LU()}`);
+}
+$('#bMatch').onclick = () => setMode(state.mode === 'match' ? 'view' : 'match');
 
 /* ----- quick measure ----- */
 function measureClick(latlng) {
@@ -1856,6 +2050,8 @@ window.addEventListener('resize', () => { if (prof && prof.e) drawProfile(); });
 map.on('click', e => {
   if (state.mode === 'draw') { drawClick(e.latlng); updateTools(); return; }
   if (state.mode === 'measure') { measureClick(e.latlng); return; }
+  if (state.mode === 'straighten') { straightenClick(e.latlng); return; }
+  if (state.mode === 'match') { matchClick(e.latlng); return; }
   if (state.mode === 'edit') { if (state.selNode) { state.selNode = null; renderHandles(); updateTools(); } return; }
   if (state.selected) { state.selected = null; render(); }
 });
@@ -1864,6 +2060,8 @@ map.on('dblclick', () => {
   if (state.mode === 'measure') endMeasureLine();
 });
 map.on('mousemove', e => {
+  if (state.mode === 'straighten') { renderStraight(nearestFence(e.latlng)); return; }
+  if (state.mode === 'match') { const f = nearestFence(e.latlng); if (f) f.cursor = e.latlng; renderStraight(f); return; }
   if (state.mode === 'measure') {
     const M = state.measure;
     if (!M || M.done) { showSnap(findSnap(e.latlng)); return; }
@@ -1885,7 +2083,7 @@ map.on('mouseout', () => {
   if (state.mode === 'draw') { showSnap(null); renderDraft(); }
   if (state.mode === 'measure') { showSnap(null); renderMeasure(); }
 });
-map.on('zoomend', () => { if (dragging) return; renderLabels(); renderHandles(); updateSnapOut(); if (state.measure) renderMeasure(); });
+map.on('zoomend', () => { if (dragging) return; renderLabels(); renderHandles(); updateSnapOut(); if (state.measure) renderMeasure(); if (state.mode === 'straighten' || state.mode === 'match') renderStraight(); });
 map.on('moveend', save);
 
 document.addEventListener('keydown', e => {
@@ -1901,7 +2099,11 @@ document.addEventListener('keydown', e => {
     case 'e': case 'E': setMode(state.mode === 'edit' ? 'view' : 'edit'); break;
     case 'f': case 'F': setFill(!state.fill); break;
     case 'm': case 'M': setMode(state.mode === 'measure' ? 'view' : 'measure'); break;
+    case 's': case 'S': setMode(state.mode === 'straighten' ? 'view' : 'straighten'); break;
+    case 'l': case 'L': setMode(state.mode === 'match' ? 'view' : 'match'); break;
     case 'Escape':
+      if (state.mode === 'straighten' && straightRef) { straightRef = null; renderStraight(); updateStraightBanner(); break; }
+      if (state.mode === 'match' && matchRef) { matchRef = null; renderStraight(); updateStraightBanner(); break; }
       if (state.mode === 'draw' && state.draft && state.draft.pts.length) { state.draft = null; draftLayer.clearLayers(); updateBanner(); updateTools(); }
       else if (state.mode === 'measure' && state.measure && state.measure.pts.length) clearMeasure();
       else if (prof) closeProfile();
