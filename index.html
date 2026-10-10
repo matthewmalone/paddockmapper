@@ -125,6 +125,8 @@ tr[data-seg]{cursor:pointer}
 .leaflet-control-layers{border-radius:8px!important;box-shadow:0 1px 3px rgb(0 0 0/.18)!important}
 .leaflet-control-layers-expanded{padding:8px 12px;font-size:14px}
 .leaflet-control-layers-toggle,.leaflet-retina .leaflet-control-layers-toggle,.leaflet-touch .leaflet-control-layers-toggle{background-image:none!important;width:38px!important;height:38px!important;display:grid!important;place-items:center;color:var(--ink)!important}
+.zoomall a{display:grid!important;place-items:center}
+.zoomall svg{width:17px;height:17px}
 .leaflet-control-layers-toggle svg{width:20px;height:20px}
 .leaflet-control-layers-expanded .leaflet-control-layers-toggle{display:none!important}
 
@@ -166,6 +168,8 @@ tr[data-seg]{cursor:pointer}
 .segc button + button{border-left:1px solid var(--line)}
 .segc button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
 
+.linkbtn{border:0;background:none;padding:0;font-size:13px;color:var(--muted);text-decoration:underline;cursor:pointer}
+.linkbtn:hover{color:var(--ink)}
 .list-h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
 h2{margin:0;font:700 16px var(--f-head);text-transform:uppercase;letter-spacing:.08em}
 .empty{color:var(--muted);font-size:14px;margin:4px 0 10px}
@@ -180,6 +184,11 @@ h2{margin:0;font:700 16px var(--f-head);text-transform:uppercase;letter-spacing:
 .cx{flex:none;display:grid;place-items:center;width:30px;height:30px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
 .cx svg{width:18px;height:18px}
 .cx:hover{border-color:var(--line);color:var(--ink)}
+.ey{flex:none;display:grid;place-items:center;width:30px;height:30px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);cursor:pointer}
+.ey svg{width:18px;height:18px}
+.ey:hover{border-color:var(--line);color:var(--ink)}
+.ey[aria-pressed="true"]{color:var(--ink);background:var(--panel);border-color:var(--line)}
+.card.hid .nm,.card.hid .meta,.card.hid .sw{opacity:.45}
 .lk{flex:none;display:grid;place-items:center;width:30px;height:30px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--mid);cursor:pointer}
 .lk svg{width:17px;height:17px}
 .lk:hover{border-color:var(--line);color:var(--ink)}
@@ -301,7 +310,7 @@ Please enable JavaScript to use it.</p></noscript>
 
 
     <section>
-      <div class="list-h"><h2>Paddocks</h2></div>
+      <div class="list-h"><h2>Paddocks</h2><button class="linkbtn" id="bShowAll" type="button" hidden>Show all</button></div>
       <div id="list"></div>
     </section>
 
@@ -337,6 +346,18 @@ Please enable JavaScript to use it.</p></noscript>
           <button type="button" data-area="ac" aria-pressed="false">Acres</button>
         </div>
       </div>
+      <div class="row seg-row"><span class="seg-l">Bearings</span>
+        <div class="segc" role="group" aria-label="Bearing reference">
+          <button type="button" data-bref="mag" aria-pressed="true">Magnetic</button>
+          <button type="button" data-bref="true" aria-pressed="false">True</button>
+        </div>
+      </div>
+      <div class="row seg-row"><span class="seg-l">Bearing format</span>
+        <div class="segc" role="group" aria-label="Bearing format">
+          <button type="button" data-bfmt="dec" aria-pressed="true">Decimal</button>
+          <button type="button" data-bfmt="dms" aria-pressed="false">D° M′ S″</button>
+        </div>
+      </div>
     </section>
 
     <section>
@@ -369,6 +390,8 @@ Please enable JavaScript to use it.</p></noscript>
       <p>Lock a paddock with the padlock on its card: its corners can't be moved or deleted, and it can't be deleted or cleared until unlocked. Names and colours stay editable. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>Ctrl</kbd>+<kbd>Y</kbd> redo.</p>
       <p><kbd>S</kbd> straighten · click a fence to use as the reference, then click other fences to give them the same bearing (or the exact opposite). The end nearer the reference stays put and the other corner moves the shortest distance onto the new line.</p>
       <p><kbd>L</kbd> match length · click a fence to use as the reference, then hover another fence near the corner you want to move (a ring marks it) and click; that corner slides along the fence, keeping its bearing, until the fence is the same length.</p>
+      <p><kbd>Z</kbd> zooms to all visible paddocks. The eye on a paddock's card hides it on the map (it still counts in totals and exports).</p>
+      <p>Magnetic bearings use the World Magnetic Model (WMM 2025) for today's date, with one declination for the whole map so parallel fences read the same.</p>
       <p><kbd>E</kbd> edit · drag a corner to move it (shared corners move together) · drag a small midpoint dot to add a corner · right-click or <kbd>Delete</kbd> removes a corner · hold <kbd>Alt</kbd> while dragging to separate a shared corner from the selected paddock.</p>
       <p>Elevation profiles use SRTM 30 m satellite elevation data (Open Topo Data), falling back to Copernicus 90 m (Open-Meteo). They show the lie of the land well, but individual heights can be out by a few metres, so they are for planning, not survey levels.</p>
       <p>Lengths and bearings are on the WGS84 ellipsoid (Vincenty), bearings are true. MGA coordinates use GRS80; GDA2020 and WGS84 positions agree to within about 1–2 m, which is less than typical imagery error.</p>
@@ -550,10 +573,92 @@ function labelPoint(ring, centroid, holes) {
       if ((yi > y) !== (yj > y)) xs.push((xj - xi) * (y - yi) / (yj - yi) + xi);
     }
     xs.sort((a, b) => a - b);
-    for (let i = 0; i + 1 < xs.length; i += 2) if (xs[i + 1] - xs[i] > bw) { bw = xs[i + 1] - xs[i]; best = [(xs[i] + xs[i + 1]) / 2, y]; }
+    // score each span's middle by its clearance from every fence (outer and inner), keep the roomiest spot
+    for (let i = 0; i + 1 < xs.length; i += 2) {
+      const pt = [(xs[i] + xs[i + 1]) / 2, y];
+      const clear = Math.min(distToRing(pt, xy), ...hxy.map(h => distToRing(pt, h)));
+      if (clear > bw) { bw = clear; best = pt; }
+    }
   }
   return best ? fromXY(F, best[0], best[1]) : centroid;
 }
+// WMM-2025 (NOAA/BGS), valid 2025.0–2030.0. Rows: n, m, g, h, g-dot, h-dot (nT, nT/yr).
+const WMM_COF = [1,0,-29351.8,0.0,12.0,0.0,1,1,-1410.8,4545.4,9.7,-21.5,2,0,-2556.6,0.0,-11.6,0.0,2,1,2951.1,-3133.6,-5.2,-27.7,2,2,1649.3,-815.1,-8.0,-12.1,3,0,1361.0,0.0,-1.3,0.0,3,1,-2404.1,-56.6,-4.2,4.0,3,2,1243.8,237.5,0.4,-0.3,3,3,453.6,-549.5,-15.6,-4.1,4,0,895.0,0.0,-1.6,0.0,4,1,799.5,278.6,-2.4,-1.1,4,2,55.7,-133.9,-6.0,4.1,4,3,-281.1,212.0,5.6,1.6,4,4,12.1,-375.6,-7.0,-4.4,5,0,-233.2,0.0,0.6,0.0,5,1,368.9,45.4,1.4,-0.5,5,2,187.2,220.2,0.0,2.2,5,3,-138.7,-122.9,0.6,0.4,5,4,-142.0,43.0,2.2,1.7,5,5,20.9,106.1,0.9,1.9,6,0,64.4,0.0,-0.2,0.0,6,1,63.8,-18.4,-0.4,0.3,6,2,76.9,16.8,0.9,-1.6,6,3,-115.7,48.8,1.2,-0.4,6,4,-40.9,-59.8,-0.9,0.9,6,5,14.9,10.9,0.3,0.7,6,6,-60.7,72.7,0.9,0.9,7,0,79.5,0.0,-0.0,0.0,7,1,-77.0,-48.9,-0.1,0.6,7,2,-8.8,-14.4,-0.1,0.5,7,3,59.3,-1.0,0.5,-0.8,7,4,15.8,23.4,-0.1,0.0,7,5,2.5,-7.4,-0.8,-1.0,7,6,-11.1,-25.1,-0.8,0.6,7,7,14.2,-2.3,0.8,-0.2,8,0,23.2,0.0,-0.1,0.0,8,1,10.8,7.1,0.2,-0.2,8,2,-17.5,-12.6,0.0,0.5,8,3,2.0,11.4,0.5,-0.4,8,4,-21.7,-9.7,-0.1,0.4,8,5,16.9,12.7,0.3,-0.5,8,6,15.0,0.7,0.2,-0.6,8,7,-16.8,-5.2,-0.0,0.3,8,8,0.9,3.9,0.2,0.2,9,0,4.6,0.0,-0.0,0.0,9,1,7.8,-24.8,-0.1,-0.3,9,2,3.0,12.2,0.1,0.3,9,3,-0.2,8.3,0.3,-0.3,9,4,-2.5,-3.3,-0.3,0.3,9,5,-13.1,-5.2,0.0,0.2,9,6,2.4,7.2,0.3,-0.1,9,7,8.6,-0.6,-0.1,-0.2,9,8,-8.7,0.8,0.1,0.4,9,9,-12.9,10.0,-0.1,0.1,10,0,-1.3,0.0,0.1,0.0,10,1,-6.4,3.3,0.0,0.0,10,2,0.2,0.0,0.1,-0.0,10,3,2.0,2.4,0.1,-0.2,10,4,-1.0,5.3,-0.0,0.1,10,5,-0.6,-9.1,-0.3,-0.1,10,6,-0.9,0.4,0.0,0.1,10,7,1.5,-4.2,-0.1,0.0,10,8,0.9,-3.8,-0.1,-0.1,10,9,-2.7,0.9,-0.0,0.2,10,10,-3.9,-9.1,-0.0,-0.0,11,0,2.9,0.0,0.0,0.0,11,1,-1.5,0.0,-0.0,-0.0,11,2,-2.5,2.9,0.0,0.1,11,3,2.4,-0.6,0.0,-0.0,11,4,-0.6,0.2,0.0,0.1,11,5,-0.1,0.5,-0.1,-0.0,11,6,-0.6,-0.3,0.0,-0.0,11,7,-0.1,-1.2,-0.0,0.1,11,8,1.1,-1.7,-0.1,-0.0,11,9,-1.0,-2.9,-0.1,0.0,11,10,-0.2,-1.8,-0.1,0.0,11,11,2.6,-2.3,-0.1,0.0,12,0,-2.0,0.0,0.0,0.0,12,1,-0.2,-1.3,0.0,-0.0,12,2,0.3,0.7,-0.0,0.0,12,3,1.2,1.0,-0.0,-0.1,12,4,-1.3,-1.4,-0.0,0.1,12,5,0.6,-0.0,-0.0,-0.0,12,6,0.6,0.6,0.1,-0.0,12,7,0.5,-0.1,-0.0,-0.0,12,8,-0.1,0.8,0.0,0.0,12,9,-0.4,0.1,0.0,-0.0,12,10,-0.2,-1.0,-0.1,-0.0,12,11,-1.3,0.1,-0.0,0.0,12,12,-0.7,0.2,-0.1,-0.1];
+const WMM_EPOCH = 2025.0;
+const wmmModel = (() => {
+  const N = 12, c = [], cd = [], snorm = [], k = [], fn = [], fm = [];
+  for (let i = 0; i <= N; i++) { c.push(new Array(N + 1).fill(0)); cd.push(new Array(N + 1).fill(0)); k.push(new Array(N + 1).fill(0)); }
+  for (let i = 0; i < WMM_COF.length; i += 6) {
+    const n = WMM_COF[i], m = WMM_COF[i + 1];
+    c[m][n] = WMM_COF[i + 2]; cd[m][n] = WMM_COF[i + 4];
+    if (m !== 0) { c[n][m - 1] = WMM_COF[i + 3]; cd[n][m - 1] = WMM_COF[i + 5]; }
+  }
+  snorm[0] = 1;
+  for (let n = 1; n <= N; n++) {
+    snorm[n] = snorm[n - 1] * (2 * n - 1) / n;
+    let j = 2;
+    for (let m = 0; m <= n; m++) {
+      k[m][n] = ((n - 1) * (n - 1) - m * m) / ((2 * n - 1) * (2 * n - 3));
+      if (m > 0) {
+        const flnmj = (n - m + 1) * j / (n + m);
+        snorm[n + m * 13] = snorm[n + (m - 1) * 13] * Math.sqrt(flnmj);
+        j = 1;
+        c[n][m - 1] *= snorm[n + m * 13]; cd[n][m - 1] *= snorm[n + m * 13];
+      }
+      c[m][n] *= snorm[n + m * 13]; cd[m][n] *= snorm[n + m * 13];
+    }
+    fn[n] = n + 1; fm[n] = n;
+  }
+  k[1][1] = 0; fm[0] = 0;
+  return { N, c, cd, k, fn, fm };
+})();
+/** Magnetic declination (degrees, east positive) at a point on the ground, for a decimal year. */
+function wmmDeclination(lat, lon, year) {
+  const { N, c, cd, k, fn, fm } = wmmModel;
+  const a = 6378.137, b = 6356.7523142, re = 6371.2, alt = 0;
+  const a2 = a * a, b2 = b * b, c2 = a2 - b2, a4 = a2 * a2, b4 = b2 * b2, c4 = a4 - b4;
+  const dt = Math.min(5, Math.max(-1, year - WMM_EPOCH));
+  const rlat = lat * Math.PI / 180, rlon = lon * Math.PI / 180;
+  const srlat = Math.sin(rlat), crlat = Math.cos(rlat), srlat2 = srlat * srlat, crlat2 = crlat * crlat;
+  const sp = [0, Math.sin(rlon)], cp = [1, Math.cos(rlon)];
+  const q = Math.sqrt(a2 - c2 * srlat2), q1 = alt * q, q2 = ((q1 + a2) / (q1 + b2)) ** 2;
+  const ct = srlat / Math.sqrt(q2 * crlat2 + srlat2), st = Math.sqrt(1 - ct * ct);
+  const r2 = alt * alt + 2 * q1 + (a4 - c4 * srlat2) / (q * q), r = Math.sqrt(r2);
+  const d = Math.sqrt(a2 * crlat2 + b2 * srlat2), ca = (alt + d) / r, sa = c2 * crlat * srlat / (r * d);
+  for (let m = 2; m <= N; m++) { sp[m] = sp[1] * cp[m - 1] + cp[1] * sp[m - 1]; cp[m] = cp[1] * cp[m - 1] - sp[1] * sp[m - 1]; }
+  const aor = re / r;
+  let ar = aor * aor, br = 0, bt = 0, bp = 0, bpp = 0;
+  const p = [], dp = [], pp = [1];
+  for (let i = 0; i <= N; i++) { p.push(new Array(N + 1).fill(0)); dp.push(new Array(N + 1).fill(0)); }
+  p[0][0] = 1;
+  for (let n = 1; n <= N; n++) {
+    ar *= aor;
+    for (let m = 0; m <= n; m++) {
+      if (n === m) { p[m][n] = st * p[m - 1][n - 1]; dp[m][n] = st * dp[m - 1][n - 1] + ct * p[m - 1][n - 1]; }
+      else if (n === 1 && m === 0) { p[m][n] = ct * p[m][n - 1]; dp[m][n] = ct * dp[m][n - 1] - st * p[m][n - 1]; }
+      else {
+        if (m > n - 2) { p[m][n - 2] = 0; dp[m][n - 2] = 0; }
+        p[m][n] = ct * p[m][n - 1] - k[m][n] * p[m][n - 2];
+        dp[m][n] = ct * dp[m][n - 1] - st * p[m][n - 1] - k[m][n] * dp[m][n - 2];
+      }
+      const tcmn = c[m][n] + dt * cd[m][n], tcnm = m ? c[n][m - 1] + dt * cd[n][m - 1] : 0;
+      const par = ar * p[m][n];
+      const t1 = m ? tcmn * cp[m] + tcnm * sp[m] : tcmn * cp[m];
+      const t2 = m ? tcmn * sp[m] - tcnm * cp[m] : tcmn * sp[m];
+      bt -= ar * t1 * dp[m][n];
+      bp += fm[m] * t2 * par;
+      br += fn[n] * t1 * par;
+      if (st === 0 && m === 1) {
+        pp[n] = n === 1 ? pp[n - 1] : ct * pp[n - 1] - k[m][n] * pp[n - 2];
+        bpp += fm[m] * t2 * ar * pp[n];
+      }
+    }
+  }
+  bp = st === 0 ? bpp : bp / st;
+  const bx = -bt * ca - br * sa, by = bp;
+  return Math.atan2(by, bx) * 180 / Math.PI;
+}
+
 // GEO-END
 
 if (typeof L === 'undefined') {
@@ -572,7 +677,7 @@ const state = {
   paddocks: [], selected: null, selNode: null,
   mode: 'view', draft: null,
   snap: true, snapPx: 14, showLengths: true, coord: 'll',
-  layer: 'Google Satellite', fill: false, showAreas: true, showNames: true, buffer: false, bufferM: 15, areaUnit: 'ha', lenUnit: 'm', measure: null
+  layer: 'Google Satellite', fill: false, showAreas: true, showNames: true, buffer: false, bufferM: 15, bearingRef: 'mag', bearingFmt: 'dec', hidden: new Set(), areaUnit: 'ha', lenUnit: 'm', measure: null
 };
 let S = null;               // computed stats cache
 let altDown = false;
@@ -581,6 +686,8 @@ const polyById = new Map();
 
 const $ = s => document.querySelector(s);
 const byId = id => state.paddocks.find(p => p.id === id);
+const isHidden = id => state.hidden.has(id);
+const visiblePaddocks = () => state.paddocks.filter(P => !state.hidden.has(P.id));
 const key = p => p.lat.toFixed(7) + ',' + p.lng.toFixed(7);
 const edgeKey = (a, b) => { const x = key(a), y = key(b); return x < y ? x + '|' + y : y + '|' + x; };
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -596,6 +703,24 @@ const areaU = () => state.areaUnit === 'ac' ? 'ac' : 'ha';
 const fmtArea = m2 => nf(state.areaUnit === 'ac' ? m2 / SQM_PER_ACRE : m2 / 1e4, 2);
 /** Bearing to 4 decimals, never shown as 360.0000. */
 const fmtBrg = b => { let v = +(((b % 360) + 360) % 360).toFixed(4); if (v >= 360) v -= 360; return v.toFixed(4); };
+/* Bearings: stored and computed as true bearings; shown as magnetic (true minus declination) when chosen. */
+const DEC_YEAR = (() => { const d = new Date(), y = d.getUTCFullYear(), a = Date.UTC(y, 0, 1), b = Date.UTC(y + 1, 0, 1); return y + (Date.now() - a) / (b - a); })();
+/** One declination for the whole map (at the middle of all paddocks), so parallel fences show identical magnetic bearings. */
+function mapDeclination() {
+  const pts = state.paddocks.flatMap(P => P.ring);
+  const c = pts.length ? { lat: pts.reduce((a, v) => a + v.lat, 0) / pts.length, lng: pts.reduce((a, v) => a + v.lng, 0) / pts.length } : map.getCenter();
+  return wmmDeclination(c.lat, c.lng, DEC_YEAR);
+}
+const norm360 = b => ((b % 360) + 360) % 360;
+const shownBrg = (trueBrg, decl) => state.bearingRef === 'mag' ? norm360(trueBrg - decl) : norm360(trueBrg);
+function dmsStr(b) {
+  let t = Math.round(norm360(b) * 36000); t %= 360 * 36000;          // tenths of an arc-second
+  const d = Math.floor(t / 36000), m = Math.floor(t % 36000 / 600), sec = (t % 600) / 10;
+  return `${String(d).padStart(3, '0')}°${String(m).padStart(2, '0')}′${sec.toFixed(1).padStart(4, '0')}″`;
+}
+const fmtBearing = b => state.bearingFmt === 'dms' ? dmsStr(b) : fmtBrg(b).padStart(8, '0') + '°';
+const brgRefLabel = () => state.bearingRef === 'mag' ? 'magnetic' : 'true';
+const fmtDecl = d => `${nf(Math.abs(d), 2)}° ${d >= 0 ? 'E' : 'W'}`;
 const fmtMapLen = n => { const v = toLU(n); return (v < 100 ? nf(v, 1) : nf(v, 0)) + ' ' + LU(); };
 function dms(b) {
   let t = Math.round(b * 3600); t = ((t % 1296000) + 1296000) % 1296000;
@@ -607,6 +732,24 @@ function dms(b) {
 const DARLINGTON_POINT = [-34.567, 146.000]; // town centre, Darlington Point NSW
 const map = L.map('map', { zoomControl: false, maxZoom: 21, center: DARLINGTON_POINT, zoom: 15 });
 L.control.zoom({ position: 'bottomright' }).addTo(map);
+const ZoomAll = L.Control.extend({
+  options: { position: 'bottomright' },
+  onAdd() {
+    const div = L.DomUtil.create('div', 'leaflet-bar zoomall');
+    const a = L.DomUtil.create('a', '', div);
+    a.href = '#'; a.title = 'Zoom to all paddocks (Z)'; a.setAttribute('role', 'button'); a.setAttribute('aria-label', 'Zoom to all paddocks');
+    a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>';
+    L.DomEvent.on(a, 'click', e => { L.DomEvent.stop(e); zoomAll(); });
+    L.DomEvent.disableClickPropagation(div);
+    return div;
+  }
+});
+new ZoomAll().addTo(map);
+function zoomAll() {
+  const list = visiblePaddocks().length ? visiblePaddocks() : state.paddocks;
+  if (!list.length) { toast('No paddocks to zoom to yet'); return; }
+  map.fitBounds(L.latLngBounds(list.flatMap(P => P.ring)), { padding: [40, 40], maxZoom: 18 });
+}
 const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const gTiles = lyrs => L.tileLayer(`https://mt{s}.google.com/vt/lyrs=${lyrs}&x={x}&y={y}&z={z}`, {
   subdomains: '0123', maxNativeZoom: 20, maxZoom: 21, attribution: 'Map data &copy; Google' });
@@ -663,14 +806,14 @@ function findSnap(latlng, skip) {
   if (!state.snap) return null;
   const pt = map.latLngToContainerPoint(latlng), tol = state.snapPx;
   let best = null, bd = tol;
-  for (const P of state.paddocks) P.ring.forEach((v, i) => {
+  for (const P of visiblePaddocks()) P.ring.forEach((v, i) => {
     if (skip && skip(P.id, i)) return;
     const d = pt.distanceTo(map.latLngToContainerPoint(v));
     if (d < bd) { bd = d; best = { type: 'vertex', latlng: { lat: v.lat, lng: v.lng } }; }
   });
   if (best) return best;
   bd = tol;
-  for (const P of state.paddocks) {
+  for (const P of visiblePaddocks()) {
     const n = P.ring.length;
     for (let i = 0; i < n; i++) {
       const j = (i + 1) % n;
@@ -760,6 +903,25 @@ function nextName() {
   while (used.has('Paddock ' + i)) i++;
   return 'Paddock ' + i;
 }
+/** Colour for a new paddock: one no neighbour uses (touching, sharing a fence or corner, or nested), spreading the palette. */
+function pickColor(ring) {
+  const F = localFrame(ring[0]), R = ring.map(p => toXY(F, p));
+  const xs = R.map(p => p[0]), ys = R.map(p => p[1]);
+  const box = [Math.min(...xs) - 5, Math.min(...ys) - 5, Math.max(...xs) + 5, Math.max(...ys) + 5];
+  const near = new Set(), use = new Map();
+  for (const P of state.paddocks) {
+    const c = P.color.toLowerCase();
+    use.set(c, (use.get(c) || 0) + 1);
+    const Q = P.ring.map(p => toXY(F, p));
+    if (Q.every(p => p[0] < box[0] || p[0] > box[2] || p[1] < box[1] || p[1] > box[3]) && !pointInRing(Q[0], R) && !pointInRing(R[0], Q)) continue;
+    const touching = R.some(pt => distToRing(pt, Q) < 3) || Q.some(pt => distToRing(pt, R) < 3);
+    const nested = pointInRing(R[0], Q) || pointInRing(Q[0], R);
+    if (touching || nested) near.add(c);
+  }
+  const free = COLORS.filter(c => !near.has(c.toLowerCase()));
+  const pool = free.length ? free : COLORS;
+  return pool.reduce((best, c) => (use.get(c.toLowerCase()) || 0) < (use.get(best.toLowerCase()) || 0) ? c : best, pool[0]);
+}
 function nextColor() {
   const used = state.paddocks.map(p => p.color);
   return COLORS.find(c => !used.includes(c)) || COLORS[state.paddocks.length % COLORS.length];
@@ -800,7 +962,8 @@ function computeAll() {
   }
   const zone = cnt ? Math.floor((lngSum / cnt + 180) / 6) + 1 : 55;
   const south = cnt ? latSum / cnt < 0 : true;
-  return { per, edges, warn, total: { area, fence, shared, count: state.paddocks.length }, zone, south };
+  const decl = mapDeclination();
+  return { per, edges, warn, decl, total: { area, fence, shared, count: state.paddocks.length }, zone, south };
 }
 
 /** Paddocks whose own fences cross, or that partly overlap another paddock (areas would be double counted).
@@ -864,6 +1027,7 @@ function render() {
   const depth = id => { let d = 0, p = S.per.get(id).parent; while (p && d < 50) { d++; p = S.per.get(p).parent; } return d; };
   const order = state.paddocks.slice().sort((a, b) => depth(a.id) - depth(b.id));
   for (const P of order) {
+    if (isHidden(P.id)) continue;
     const sel = P.id === state.selected;
     const onClick = e => {
       if (state.mode === 'draw' || state.mode === 'measure' || state.mode === 'straighten' || state.mode === 'match') return;
@@ -881,7 +1045,7 @@ function render() {
   // shared fences: alternating dashes in the two paddocks' colours
   sharedLines = [];
   for (const E of S.edges.values()) {
-    const ids = [...new Set(E.owners.map(o => o.pid))];
+    const ids = [...new Set(E.owners.map(o => o.pid))].filter(id => !isHidden(id));
     if (ids.length < 2) continue;
     const A = byId(ids[0]), B = byId(ids[1]);
     const w = ids.includes(state.selected) ? 3 : 2;
@@ -916,6 +1080,7 @@ function renderLabels(drag) {
   for (const P of state.paddocks) {
     const st = S.per.get(P.id);
     if (!state.showNames && !state.showAreas) continue;
+    if (isHidden(P.id)) continue;
     if (drag && drag.affected.has(P.id)) continue;
     if (!st.labelAt) st.labelAt = labelPoint(P.ring, st.centroid, st.children.map(c => byId(c).ring));
     const nameHtml = state.showNames ? `<b>${esc(P.name)}</b>` : '';
@@ -924,6 +1089,7 @@ function renderLabels(drag) {
   }
   if (state.showLengths) {
     for (const E of S.edges.values()) {
+      if (E.owners.every(o => isHidden(o.pid))) continue;
       if (drag && (drag.moved.has(E.a) || drag.moved.has(E.b) || !drag.keys.has(edgeKey(E.a, E.b)))) continue;
       const pa = map.latLngToLayerPoint(E.a), pb = map.latLngToLayerPoint(E.b);
       if (pa.distanceTo(pb) < 66) continue;
@@ -934,7 +1100,7 @@ function renderLabels(drag) {
     }
   }
   const P = byId(state.selected);
-  if (P && state.mode !== 'draw' && !drag) {
+  if (P && !isHidden(P.id) && state.mode !== 'draw' && !drag) {
     P.ring.forEach((v, i) => divMarker(v, `<div class="clabel">C${i + 1}</div>`).addTo(labelLayer));
   }
 }
@@ -958,6 +1124,7 @@ function renderHandles() {
   }
   // midpoint handles first so corner handles sit on top
   for (const E of edges.values()) {
+    if (E.owners.every(o => isHidden(o.pid))) continue;
     const pa = map.latLngToLayerPoint(E.a), pb = map.latLngToLayerPoint(E.b);
     if (pa.distanceTo(pb) < HANDLE * 2.4) continue;
     if (E.owners.some(o => byId(o.pid).locked)) continue;
@@ -973,6 +1140,7 @@ function renderHandles() {
     mk.on('click', () => { const m = insert(); state.selNode = key(mid); afterEdit(); void m; });
   }
   for (const [k, nd] of nodes) {
+    if (nd.members.every(m => isHidden(m.pid))) continue;
     const lockedBy = nd.members.map(m => byId(m.pid)).filter(P => P.locked).map(P => P.name);
     if (lockedBy.length) {
       L.marker(nd.ll, { draggable: false, keyboard: false, zIndexOffset: 700,
@@ -1164,7 +1332,7 @@ function createPaddock(pts) {
   if (ringSelfCrosses(ring.map(p => toXY(F, p)))) { toast('Those fence lines cross each other. Remove the last corner and try a different order.'); return null; }
   if (polyMetrics(ring).area < 1) { toast('Those corners are in a straight line, so they don’t enclose a paddock'); return null; }
   pushUndo();
-  const P = { id: uid(), name: nextName(), color: nextColor(), ring: clockwise(ring) };
+  const P = { id: uid(), name: nextName(), color: pickColor(ring), ring: clockwise(ring) };
   state.paddocks.push(P);
   state.selected = P.id;
   stitch(); cleanup(); save();
@@ -1260,6 +1428,7 @@ function renderSide() {
     <div><span class="k">Fence</span><span class="v">${nf(toLU(t.fence), 0)} <small>${LU()}</small></span></div>
     <div><span class="k">Shared</span><span class="v">${nf(toLU(t.shared), 0)} <small>${LU()}</small></span></div>`;
   $('#sumNote').textContent = t.count ? 'Fence counts each shared fence once. Shared is fence between two paddocks.' : '';
+  $('#bShowAll').hidden = !state.paddocks.some(P => isHidden(P.id));
   const list = $('#list');
   if (!state.paddocks.length) {
     list.innerHTML = '<p class="empty">No paddocks yet. Press <b>Draw paddock</b>, then click each corner on the map.</p><button class="btn" id="bExamples" type="button">Show example paddocks</button>';
@@ -1277,6 +1446,7 @@ function renderSide() {
         <input class="nm" value="${esc(P.name)}" data-act="name" aria-label="Paddock name">
         <span class="meta">${fmtArea(st.area)} ${areaU()}</span>
         <button class="cx" data-act="toggle" aria-expanded="${sel}" title="${sel ? 'Collapse' : 'Expand'}" aria-label="${sel ? 'Collapse' : 'Expand'} ${esc(P.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${sel ? 'm7 14 5-5 5 5' : 'm7 10 5 5 5-5'}"/></svg></button>
+        <button class="ey" data-act="eye" aria-pressed="${isHidden(P.id)}" title="${isHidden(P.id) ? 'Hidden on the map. Click to show.' : 'Hide on the map'}" aria-label="${isHidden(P.id) ? 'Show' : 'Hide'} ${esc(P.name)}">${isHidden(P.id) ? EYE_OFF_SVG : EYE_SVG}</button>
         <button class="lk" data-act="lock" aria-pressed="${!!P.locked}" title="${P.locked ? 'Locked: corners can’t be moved or deleted. Click to unlock.' : 'Lock this paddock against changes'}" aria-label="${P.locked ? 'Unlock' : 'Lock'} ${esc(P.name)}">${P.locked ? LOCK_SVG : OPEN_SVG}</button></div>`;
     const w = S.warn.get(P.id);
     const warnLine = w ? `<p class="warn">Check: ${esc(w.join('; '))}</p>` : '';
@@ -1284,17 +1454,17 @@ function renderSide() {
     if (st.parent) nestBits.push(`Inside ${esc(byId(st.parent).name)}`);
     if (st.children.length) nestBits.push(`Excludes ${st.children.map(c => esc(byId(c).name)).join(', ')} · gross ${fmtArea(st.gross)} ${areaU()}`);
     const nestLine = nestBits.length ? `<p class="nest">${nestBits.join(' · ')}</p>` : '';
-    if (!sel) return `<article class="card" data-id="${P.id}">${head}${warnLine}</article>`;
+    if (!sel) return `<article class="card${isHidden(P.id) ? ' hid' : ''}" data-id="${P.id}">${head}${warnLine}</article>`;
     const fenceRows = st.segs.map((s, i) => `<tr data-seg="${i}">
         <td>F${i + 1}</td><td>C${i + 1}→C${(i + 1) % st.segs.length + 1}</td>
-        <td class="r">${nf(toLU(s.d), 2)}</td><td class="r">${fmtBrg(s.brg).padStart(8, '0')}°</td>
+        <td class="r">${nf(toLU(s.d), 2)}</td><td class="r">${fmtBearing(shownBrg(s.brg, S.decl))}</td>
         <td>${s.shared.length ? s.shared.map(n => `<span class="tag">${esc(n)}</span>`).join(' ') : ''}</td></tr>`).join('');
     const corRows = P.ring.map((v, i) => {
       if (state.coord === 'mga') { const u = toUTM(v.lat, v.lng, S.zone); return `<tr data-cor="${i}"><td>C${i + 1}</td><td class="r">${nf(u.E, 2).replace(/,/g, ' ')}</td><td class="r">${nf(u.N, 2).replace(/,/g, ' ')}</td></tr>`; }
       return `<tr data-cor="${i}"><td>C${i + 1}</td><td class="r">${v.lat.toFixed(7)}</td><td class="r">${v.lng.toFixed(7)}</td></tr>`;
     }).join('');
     const corHead = state.coord === 'mga' ? '<th>Corner</th><th class="r">Easting</th><th class="r">Northing</th>' : '<th>Corner</th><th class="r">Latitude</th><th class="r">Longitude</th>';
-    return `<article class="card sel" data-id="${P.id}">${head}${warnLine}
+    return `<article class="card sel${isHidden(P.id) ? ' hid' : ''}" data-id="${P.id}">${head}${warnLine}
       <div class="card-b">
         ${nestLine}
         <div class="stats">
@@ -1303,7 +1473,8 @@ function renderSide() {
           <div><span class="k">Corners</span><b>${P.ring.length}</b></div>
         </div>
         <h3>Fence lines <span>click a row for elevation</span></h3>
-        <div class="tw"><table><thead><tr><th>Fence</th><th>Corners</th><th class="r">Length ${LU()}</th><th class="r">Bearing ° true</th><th>Shared with</th></tr></thead><tbody>${fenceRows}</tbody></table></div>
+        <div class="tw"><table><thead><tr><th>Fence</th><th>Corners</th><th class="r">Length ${LU()}</th><th class="r">Bearing ${state.bearingRef === 'mag' ? 'mag' : 'true'}</th><th>Shared with</th></tr></thead><tbody>${fenceRows}</tbody></table></div>
+        ${state.bearingRef === 'mag' ? `<p class="nest">Magnetic bearings = true − ${fmtDecl(S.decl)} declination (WMM 2025, today’s date).</p>` : ''}
         <h3>Corners <span>${state.coord === 'mga' ? zlabel : 'decimal degrees'}</span></h3>
         <div class="tw"><table><thead><tr>${corHead}</tr></thead><tbody>${corRows}</tbody></table></div>
         <div class="card-a">
@@ -1316,6 +1487,8 @@ function renderSide() {
   }).join('');
 }
 
+const EYE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.7"/></svg>';
+const EYE_OFF_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.7"/><path d="M4 4l16 16"/></svg>';
 const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="1.5"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/></svg>';
 const OPEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="1.5"/><path d="M9 11V8a3 3 0 0 1 5.8-1"/></svg>';
 const list = $('#list');
@@ -1325,6 +1498,12 @@ list.addEventListener('click', e => {
   const act = e.target.closest('[data-act]')?.dataset.act;
   if (act === 'zoom') { map.fitBounds(L.latLngBounds(P.ring), { padding: [50, 50], maxZoom: 19 }); return; }
   if (act === 'copy') { copyText(paddockTSV(P)); return; }
+  if (act === 'eye') {
+    if (isHidden(id)) state.hidden.delete(id); else state.hidden.add(id);
+    if (isHidden(id) && state.selNode) state.selNode = null;
+    render(); save();
+    return;
+  }
   if (act === 'lock') {
     pushUndo();
     P.locked = !P.locked;
@@ -1403,9 +1582,9 @@ const csv = rows => '\ufeff' + rows.map(r => r.map(csvq).join(',')).join('\r\n')
 const stamp = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 function fenceRows() {
-  const rows = [['paddock', 'fence', 'from_corner', 'to_corner', 'from_lat', 'from_lon', 'to_lat', 'to_lon', 'length_m', 'length_ft', 'bearing_true_deg', 'bearing_true_dms', 'shared_with']];
+  const rows = [['paddock', 'fence', 'from_corner', 'to_corner', 'from_lat', 'from_lon', 'to_lat', 'to_lon', 'length_m', 'length_ft', 'bearing_true_deg', 'bearing_true_dms', 'bearing_mag_deg', 'bearing_mag_dms', 'declination_deg', 'shared_with']];
   for (const P of state.paddocks) S.per.get(P.id).segs.forEach((s, i, a) => rows.push([P.name, 'F' + (i + 1), 'C' + (i + 1), 'C' + ((i + 1) % a.length + 1),
-    s.a.lat.toFixed(7), s.a.lng.toFixed(7), s.b.lat.toFixed(7), s.b.lng.toFixed(7), s.d.toFixed(2), (s.d / FT).toFixed(2), fmtBrg(s.brg), dms(s.brg), s.shared.join('; ')]));
+    s.a.lat.toFixed(7), s.a.lng.toFixed(7), s.b.lat.toFixed(7), s.b.lng.toFixed(7), s.d.toFixed(2), (s.d / FT).toFixed(2), fmtBrg(s.brg), dmsStr(s.brg), fmtBrg(norm360(s.brg - S.decl)), dmsStr(s.brg - S.decl), S.decl.toFixed(4), s.shared.join('; ')]));
   return rows;
 }
 function cornerRows() {
@@ -1468,8 +1647,8 @@ function kml() {
 }
 function paddockTSV(P) {
   const st = S.per.get(P.id);
-  const lines = [`${P.name}\t${fmtArea(st.area)} ${areaU()}${st.children.length ? ` net (gross ${fmtArea(st.gross)} ${areaU()})` : ''}\tperimeter ${toLU(st.perim).toFixed(2)} ${LU()}`, '', `Fence\tFrom\tTo\tLength ${LU()}\tBearing deg true\tShared with`];
-  st.segs.forEach((s, i, a) => lines.push(`F${i + 1}\tC${i + 1}\tC${(i + 1) % a.length + 1}\t${toLU(s.d).toFixed(2)}\t${fmtBrg(s.brg)}\t${s.shared.join('; ')}`));
+  const lines = [`${P.name}\t${fmtArea(st.area)} ${areaU()}${st.children.length ? ` net (gross ${fmtArea(st.gross)} ${areaU()})` : ''}\tperimeter ${toLU(st.perim).toFixed(2)} ${LU()}`, '', `Fence\tFrom\tTo\tLength ${LU()}\tBearing ${brgRefLabel()}${state.bearingRef === 'mag' ? ` (declination ${fmtDecl(S.decl)})` : ''}\tShared with`];
+  st.segs.forEach((s, i, a) => lines.push(`F${i + 1}\tC${i + 1}\tC${(i + 1) % a.length + 1}\t${toLU(s.d).toFixed(2)}\t${fmtBearing(shownBrg(s.brg, S.decl))}\t${s.shared.join('; ')}`));
   lines.push('', `Corner\tLatitude\tLongitude\tEasting\tNorthing (zone ${S.zone})`);
   P.ring.forEach((v, i) => { const u = toUTM(v.lat, v.lng, S.zone); lines.push(`C${i + 1}\t${v.lat.toFixed(7)}\t${v.lng.toFixed(7)}\t${u.E.toFixed(3)}\t${u.N.toFixed(3)}`); });
   return lines.join('\n');
@@ -1522,7 +1701,7 @@ function importGeo(obj) {
       if (ring.length > 1 && key(ring[0]) === key(ring[ring.length - 1])) ring.pop();
       if (ring.length < 3 || polyMetrics(ring).area < 1) continue;
       const pr = f.properties || {};
-      const P = { id: uid(), name: pr.name ? String(pr.name).slice(0, 80) : nextName(), color: /^#[0-9a-f]{6}$/i.test(pr.color || '') ? pr.color : nextColor(), ring: clockwise(ring), locked: pr.locked === true };
+      const P = { id: uid(), name: pr.name ? String(pr.name).slice(0, 80) : nextName(), color: /^#[0-9a-f]{6}$/i.test(pr.color || '') ? pr.color : pickColor(ring), ring: clockwise(ring), locked: pr.locked === true };
       state.paddocks.push(P); added.push(P);
     }
   }
@@ -1535,6 +1714,7 @@ function importGeo(obj) {
   map.fitBounds(L.latLngBounds(added.flatMap(p => p.ring)), { padding: [40, 40] });
   toast(`Imported ${added.length} paddock${added.length > 1 ? 's' : ''}`);
 }
+$('#bShowAll').onclick = () => { state.hidden.clear(); render(); save(); };
 $('#bClear').onclick = e => {
   const b = e.currentTarget;
   if (!state.paddocks.length) return;
@@ -1583,6 +1763,16 @@ document.querySelectorAll('[data-len]').forEach(b => b.onclick = () => {
   if (state.measure) renderMeasure();
   if (prof && prof.e) drawProfile(); else if (prof) $('#pfSrc').textContent = `${fmtM(prof.L)} ${LU()} along the line`;
   save();
+});
+document.querySelectorAll('[data-bref]').forEach(b => b.onclick = () => {
+  state.bearingRef = b.dataset.bref === 'true' ? 'true' : 'mag';
+  document.querySelectorAll('[data-bref]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  renderSide(); if (state.mode === 'straighten') { renderStraight(); updateStraightBanner(); } save();
+});
+document.querySelectorAll('[data-bfmt]').forEach(b => b.onclick = () => {
+  state.bearingFmt = b.dataset.bfmt === 'dms' ? 'dms' : 'dec';
+  document.querySelectorAll('[data-bfmt]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  renderSide(); if (state.mode === 'straighten') { renderStraight(); updateStraightBanner(); } save();
 });
 document.querySelectorAll('[data-area]').forEach(b => b.onclick = () => {
   state.areaUnit = b.dataset.area === 'ac' ? 'ac' : 'ha';
@@ -1661,7 +1851,7 @@ function equalizeToggles() {
 let bufferLine = null, bufferEdge = null;
 function bufferSegments() {
   const seen = new Set(), segs = [];
-  for (const P of state.paddocks) {
+  for (const P of visiblePaddocks()) {
     const n = P.ring.length;
     for (let i = 0; i < n; i++) {
       const a = P.ring[i], b = P.ring[(i + 1) % n], k = edgeKey(a, b);
@@ -1706,6 +1896,8 @@ function syncSettingsUI() {
   document.querySelectorAll('[data-coord]').forEach(x => x.setAttribute('aria-pressed', x.dataset.coord === state.coord));
   document.querySelectorAll('[data-area]').forEach(x => x.setAttribute('aria-pressed', x.dataset.area === state.areaUnit));
   document.querySelectorAll('[data-len]').forEach(x => x.setAttribute('aria-pressed', x.dataset.len === state.lenUnit));
+  document.querySelectorAll('[data-bref]').forEach(x => x.setAttribute('aria-pressed', x.dataset.bref === state.bearingRef));
+  document.querySelectorAll('[data-bfmt]').forEach(x => x.setAttribute('aria-pressed', x.dataset.bfmt === state.bearingFmt));
   updateSnapOut();
 }
 
@@ -1736,7 +1928,8 @@ $('#bSaveProj').onclick = () => {
   const proj = {
     app: 'paddock-draw', version: 1, saved: new Date().toISOString(),
     view: { lat: c.lat, lng: c.lng, zoom: map.getZoom() }, layer: state.layer,
-    settings: { snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM },
+    settings: { snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM, bearingRef: state.bearingRef, bearingFmt: state.bearingFmt },
+    hidden: [...state.hidden],
     paddocks: state.paddocks.map(P => ({ id: P.id, name: P.name, color: P.color, locked: !!P.locked, ring: P.ring.map(v => v.auto ? { lat: v.lat, lng: v.lng, auto: true } : { lat: v.lat, lng: v.lng }) }))
   };
   download(`paddocks-${stamp()}.paddocks.json`, JSON.stringify(proj, null, 1), 'application/json');
@@ -1762,6 +1955,8 @@ $('#projIn').onchange = async e => {
   const st = d.settings || {};
   state.snap = st.snap !== false; state.snapPx = Math.min(40, Math.max(4, +st.snapPx || 14));
   state.showLengths = st.showLengths !== false; state.coord = st.coord === 'mga' ? 'mga' : 'll'; state.fill = st.fillOn === true; state.areaUnit = st.areaUnit === 'ac' ? 'ac' : 'ha'; state.lenUnit = st.lenUnit === 'ft' ? 'ft' : 'm'; state.showAreas = st.showAreas !== false; state.showNames = st.showNames !== false; state.buffer = st.buffer === true; state.bufferM = Math.min(50, Math.max(1, Math.round(+st.bufferM) || 15));
+  state.bearingRef = st.bearingRef === 'true' ? 'true' : 'mag'; state.bearingFmt = st.bearingFmt === 'dms' ? 'dms' : 'dec';
+  state.hidden = new Set((Array.isArray(d.hidden) ? d.hidden : []).filter(id => paddocks.some(P => P.id === id)));
   if (d.layer) setBase(d.layer);
   syncSettingsUI();
   stitch(); cleanup(); render();
@@ -1779,7 +1974,7 @@ const wrap180 = x => ((x + 540) % 360) - 180;
 function nearestFence(latlng) {
   const pt = map.latLngToContainerPoint(latlng), tol = COARSE ? 18 : 12;
   let best = null, bd = tol;
-  for (const P of state.paddocks) {
+  for (const P of visiblePaddocks()) {
     const n = P.ring.length;
     for (let i = 0; i < n; i++) {
       const a = P.ring[i], b = P.ring[(i + 1) % n];
@@ -1800,7 +1995,7 @@ function renderStraight(hover) {
     const pa = map.latLngToLayerPoint(R.a), pb = map.latLngToLayerPoint(R.b);
     let ang = Math.atan2(pb.y - pa.y, pb.x - pa.x) / DEG;
     if (ang > 90) ang -= 180; if (ang < -90) ang += 180;
-    const txt = state.mode === 'match' ? `Reference ${nf(toLU(R.len), 2)} ${LU()}` : `Reference ${fmtBrg(R.brg).padStart(8, '0')}°`;
+    const txt = state.mode === 'match' ? `Reference ${nf(toLU(R.len), 2)} ${LU()}` : `Reference ${fmtBearing(shownBrg(R.brg, S.decl))} ${state.bearingRef === 'mag' ? 'mag' : 'true'}`;
     divMarker({ lat: (R.a.lat + R.b.lat) / 2, lng: (R.a.lng + R.b.lng) / 2 },
       `<div class="slabel ref" style="transform:translate(-50%,-50%) rotate(${ang.toFixed(1)}deg) translateY(-16px)">${txt}</div>`).addTo(straightLayer);
   }
@@ -1828,7 +2023,7 @@ function updateStraightBanner() {
   }
   $('#sbReset').hidden = !straightRef;
   $('#sbMsg').innerHTML = straightRef
-    ? `Reference <b>${fmtBrg(straightRef.brg).padStart(8, '0')}°</b> (${esc(straightRef.name)}). Click fences to give them this bearing.`
+    ? `Reference <b>${fmtBearing(shownBrg(straightRef.brg, S.decl))} ${brgRefLabel()}</b> (${esc(straightRef.name)}). Click fences to give them this bearing.`
     : 'Click the fence to use as the reference bearing.';
 }
 
@@ -1883,7 +2078,7 @@ function straightenClick(latlng) {
   followRef(straightRef, mk, target); followRef(matchRef, mk, target);
   stitch(); cleanup(); render(); save();
   renderStraight(); updateStraightBanner();
-  toast(`${f.P.name} F${f.i + 1} set to ${fmtBrg(tableBrg(target)).padStart(8, '0')}° · corner moved ${nf(toLU(shift), shift < 1 ? 2 : 1)} ${LU()}`);
+  toast(`${f.P.name} F${f.i + 1} set to ${fmtBearing(shownBrg(tableBrg(target), S.decl))} ${brgRefLabel()} · corner moved ${nf(toLU(shift), shift < 1 ? 2 : 1)} ${LU()}`);
 }
 $('#bStraight').onclick = () => setMode(state.mode === 'straighten' ? 'view' : 'straighten');
 $('#sbStop').onclick = () => setMode('view');
@@ -2254,6 +2449,7 @@ document.addEventListener('keydown', e => {
     case 'm': case 'M': setMode(state.mode === 'measure' ? 'view' : 'measure'); break;
     case 's': case 'S': setMode(state.mode === 'straighten' ? 'view' : 'straighten'); break;
     case 'l': case 'L': setMode(state.mode === 'match' ? 'view' : 'match'); break;
+    case 'z': case 'Z': zoomAll(); break;
     case 'Escape':
       if (state.mode === 'straighten' && straightRef) { straightRef = null; renderStraight(); updateStraightBanner(); break; }
       if (state.mode === 'match' && matchRef) { matchRef = null; renderStraight(); updateStraightBanner(); break; }
@@ -2290,7 +2486,8 @@ function save() {
     const c = map.getCenter();
     localStorage.setItem(STORE, JSON.stringify({
       paddocks: state.paddocks, view: [c.lat, c.lng, map.getZoom()], base: state.layer,
-      snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM
+      snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM,
+      bearingRef: state.bearingRef, bearingFmt: state.bearingFmt, hidden: [...state.hidden]
     }));
   } catch { /* storage unavailable: work continues in memory */ }
 }
@@ -2304,11 +2501,13 @@ function load() {
     layer: bases[d.base] ? d.base : state.layer,
     snap: d.snap !== false, snapPx: Math.min(40, Math.max(4, +d.snapPx || 14)), showLengths: d.showLengths !== false, coord: d.coord === 'mga' ? 'mga' : 'll',
     fill: d.fillOn === true, areaUnit: d.areaUnit === 'ac' ? 'ac' : 'ha', lenUnit: d.lenUnit === 'ft' ? 'ft' : 'm', showAreas: d.showAreas !== false, showNames: d.showNames !== false,
-    buffer: d.buffer === true, bufferM: Math.min(50, Math.max(1, Math.round(+d.bufferM) || 15))
+    buffer: d.buffer === true, bufferM: Math.min(50, Math.max(1, Math.round(+d.bufferM) || 15)),
+    bearingRef: d.bearingRef === 'true' ? 'true' : 'mag', bearingFmt: d.bearingFmt === 'dms' ? 'dms' : 'dec'
   });
   const paddocks = sanitizePaddocks(d.paddocks);
   if (!paddocks.length) return false;           // nothing saved: open with the example paddocks
   state.paddocks = paddocks;
+  state.hidden = new Set((Array.isArray(d.hidden) ? d.hidden : []).filter(id => paddocks.some(P => P.id === id)));
   if (Array.isArray(d.view) && d.view.length === 3 && d.view.every(v => typeof v === 'number' && isFinite(v)) && Math.abs(d.view[0]) <= 90) {
     map.setView([d.view[0], d.view[1]], Math.min(21, Math.max(2, d.view[2])));
     viewRestored = true;
