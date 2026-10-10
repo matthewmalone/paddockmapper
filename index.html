@@ -125,6 +125,10 @@ tr[data-seg]{cursor:pointer}
 .leaflet-control-layers{border-radius:8px!important;box-shadow:0 1px 3px rgb(0 0 0/.18)!important}
 .leaflet-control-layers-expanded{padding:8px 12px;font-size:14px}
 .leaflet-control-layers-toggle,.leaflet-retina .leaflet-control-layers-toggle,.leaflet-touch .leaflet-control-layers-toggle{background-image:none!important;width:38px!important;height:38px!important;display:grid!important;place-items:center;color:var(--ink)!important}
+.northctl{background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 1px 3px rgb(0 0 0/.18);padding:6px 6px 6px;text-align:center;font:600 12px var(--f-ui);color:var(--ink);font-variant-numeric:tabular-nums}
+.northctl svg{display:block;font-family:var(--f-ui)}
+.northctl .nd{margin-top:2px;font-weight:600}
+.northctl .nx{font-size:10px;font-weight:400;color:var(--muted)}
 .zoomall a{display:grid!important;place-items:center}
 .zoomall svg{width:17px;height:17px}
 .leaflet-control-layers-toggle svg{width:20px;height:20px}
@@ -328,6 +332,7 @@ Please enable JavaScript to use it.</p></noscript>
         <div class="dimwrap"><input type="range" id="dimPct" min="-100" max="100" step="5" value="0" aria-label="Fade the map imagery: left towards white, right towards black" disabled><span class="dimtick" aria-hidden="true"></span></div><output id="dimOut"></output>
       </div>
       <div class="row"><label class="check"><input type="checkbox" id="greyOn"> Greyscale imagery</label></div>
+      <div class="row"><label class="check"><input type="checkbox" id="magOn"> Show magnetic north</label></div>
       <div class="row"><label class="check"><input type="checkbox" id="fillOn"> Fill paddocks</label></div>
       <div class="row"><label class="check"><input type="checkbox" id="lenOn" checked> Show fence lengths</label></div>
       <div class="row"><label class="check"><input type="checkbox" id="nameOn" checked> Show paddock names</label></div>
@@ -354,6 +359,12 @@ Please enable JavaScript to use it.</p></noscript>
         <div class="segc" role="group" aria-label="Bearing reference">
           <button type="button" data-bref="true" aria-pressed="true">True</button>
           <button type="button" data-bref="mag" aria-pressed="false">Magnetic</button>
+        </div>
+      </div>
+      <div class="row seg-row"><span class="seg-l">Lat / lon format</span>
+        <div class="segc" role="group" aria-label="Latitude and longitude format">
+          <button type="button" data-llfmt="dec" aria-pressed="true">Decimal</button>
+          <button type="button" data-llfmt="dms" aria-pressed="false">D° M′ S″</button>
         </div>
       </div>
       <div class="row seg-row"><span class="seg-l">Bearing format</span>
@@ -395,7 +406,8 @@ Please enable JavaScript to use it.</p></noscript>
       <p><kbd>S</kbd> straighten · click a fence to use as the reference, then click other fences to give them the same bearing (or the exact opposite). The end nearer the reference stays put and the other corner moves the shortest distance onto the new line.</p>
       <p><kbd>L</kbd> match length · click a fence to use as the reference, then hover another fence near the corner you want to move (a ring marks it) and click; that corner slides along the fence, keeping its bearing, until the fence is the same length.</p>
       <p><kbd>Z</kbd> zooms to all visible paddocks. The eye on a paddock's card hides it on the map (it still counts in totals and exports).</p>
-      <p>Magnetic bearings use the World Magnetic Model (WMM 2025) for today's date, with one declination for the whole map so parallel fences read the same. WMM 2025 is valid until the end of 2029; from 2030 the page needs updating to WMM 2030, and until then magnetic bearings will slowly lose accuracy. True bearings are not affected.</p>
+      <p>Magnetic bearings and the magnetic north indicator use the World Magnetic Model (WMM 2025) for today's date. One declination is worked out for the middle of all your paddocks (or the map centre if there are none) and used for every bearing, so parallel fences read the same. It is recalculated when paddocks are added, moved or removed, not when you pan or zoom the map, so it is correct for where your paddocks are rather than wherever the map is showing. WMM 2025 is valid until the end of 2029; from 2030 the page needs updating to WMM 2030, and until then magnetic bearings will slowly lose accuracy. True bearings are not affected.</p>
+      <p>Undo history is kept in this browser (up to the last 40 changes), so a change can still be undone after closing and reopening the page. Clearing your browser data removes it.</p>
       <p><kbd>E</kbd> edit · drag a corner to move it (shared corners move together) · drag a small midpoint dot to add a corner · right-click or <kbd>Delete</kbd> removes a corner · hold <kbd>Alt</kbd> while dragging to separate a shared corner from the selected paddock.</p>
       <p>Elevation profiles use SRTM 30 m satellite elevation data (Open Topo Data), falling back to Copernicus 90 m (Open-Meteo). They show the lie of the land well, but individual heights can be out by a few metres, so they are for planning, not survey levels.</p>
       <p>Lengths and bearings are on the WGS84 ellipsoid (Vincenty), bearings are true. MGA coordinates use GRS80; GDA2020 and WGS84 positions agree to within about 1–2 m, which is less than typical imagery error.</p>
@@ -681,11 +693,12 @@ const state = {
   paddocks: [], selected: null, selNode: null,
   mode: 'view', draft: null,
   snap: true, snapPx: 14, showLengths: true, coord: 'll',
-  layer: 'Google Satellite', fill: false, showAreas: true, showNames: true, buffer: false, bufferM: 15, bearingRef: 'true', bearingFmt: 'dec', greyImg: false, dimImg: false, fade: 0, hidden: new Set(), areaUnit: 'ha', lenUnit: 'm', measure: null
+  layer: 'Google Satellite', fill: false, showAreas: true, showNames: true, buffer: false, bufferM: 15, bearingRef: 'true', bearingFmt: 'dec', llFmt: 'dec', magNorth: false, greyImg: false, dimImg: false, fade: 0, hidden: new Set(), areaUnit: 'ha', lenUnit: 'm', measure: null
 };
 let S = null;               // computed stats cache
 let altDown = false;
 const undoStack = [], redoStack = [];
+let undoDirty = false;
 const polyById = new Map();
 
 const $ = s => document.querySelector(s);
@@ -722,6 +735,15 @@ function dmsStr(b) {
   const d = Math.floor(t / 36000), m = Math.floor(t % 36000 / 600), sec = (t % 600) / 10;
   return `${String(d).padStart(3, '0')}°${String(m).padStart(2, '0')}′${sec.toFixed(1).padStart(4, '0')}″`;
 }
+/** Latitude or longitude as degrees, minutes and seconds with hemisphere, seconds to 3 decimals (about 3 cm). */
+function llDms(v, isLat) {
+  const h = isLat ? (v < 0 ? 'S' : 'N') : (v < 0 ? 'W' : 'E');
+  let t = Math.round(Math.abs(v) * 3600000);                    // thousandths of an arc-second
+  const d = Math.floor(t / 3600000), m = Math.floor(t % 3600000 / 60000), sec = (t % 60000) / 1000;
+  return `${d}°${String(m).padStart(2, '0')}′${sec.toFixed(3).padStart(6, '0')}″ ${h}`;
+}
+const fmtLat = v => state.llFmt === 'dms' ? llDms(v, true) : v.toFixed(7);
+const fmtLng = v => state.llFmt === 'dms' ? llDms(v, false) : v.toFixed(7);
 const fmtBearing = b => state.bearingFmt === 'dms' ? dmsStr(b) : fmtBrg(b).padStart(8, '0') + '°';
 const brgRefLabel = () => state.bearingRef === 'mag' ? 'magnetic' : 'true';
 const fmtDecl = d => `${nf(Math.abs(d), 2)}° ${d >= 0 ? 'E' : 'W'}`;
@@ -749,6 +771,37 @@ const ZoomAll = L.Control.extend({
   }
 });
 new ZoomAll().addTo(map);
+// true north / magnetic north indicator (the map is always drawn with true north up)
+const NorthCtl = L.Control.extend({
+  options: { position: 'bottomleft' },
+  onAdd() { const d = L.DomUtil.create('div', 'northctl'); d.hidden = true; L.DomEvent.disableClickPropagation(d); return d; }
+});
+const northCtl = new NorthCtl().addTo(map);
+function updateNorth() {
+  const box = northCtl.getContainer();
+  box.hidden = !state.magNorth;
+  if (!state.magNorth) return;
+  const d = S ? S.decl : mapDeclination();
+  box.title = `Magnetic north is ${fmtDecl(d)} of true north here (WMM 2025, today’s date)`;
+  // declination diagram in the style of a topographic map: plain line = true north, half arrow = magnetic north
+  const W = 128, H = 104, ox = W / 2, oy = 92, Lh = 72;                 // origin at the bottom, arrow length
+  // small angles are drawn opened out to at least 15° so the two arrows stay apart; the value shown is exact
+  const east = d >= 0, side = east ? 1 : -1, shown = Math.abs(d) < 15 ? side * 15 : d, exaggerated = Math.abs(d) < 15;
+  const rad = shown * DEG, tx = ox + Lh * Math.sin(rad), ty = oy - Lh * Math.cos(rad);
+  const ar = 30, ax = ox + ar * Math.sin(rad), ay = oy - ar * Math.cos(rad);   // angle arc
+  const hx = tx - 9 * Math.sin(rad) + side * 4.5 * Math.cos(rad), hy = ty + 9 * Math.cos(rad) + side * 4.5 * Math.sin(rad);
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">
+      <g fill="none" stroke="#111" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M${ox} ${oy}V${oy - Lh}"/>
+        <path d="M${ox} ${oy}L${tx.toFixed(1)} ${ty.toFixed(1)}"/>
+        <path d="M${ox} ${oy - ar}A${ar} ${ar} 0 0 ${east ? 1 : 0} ${ax.toFixed(1)} ${ay.toFixed(1)}" stroke="#777" stroke-width="1"/>
+      </g>
+      <polygon points="${tx.toFixed(1)},${ty.toFixed(1)} ${hx.toFixed(1)},${hy.toFixed(1)} ${(tx - 9 * Math.sin(rad)).toFixed(1)},${(ty + 9 * Math.cos(rad)).toFixed(1)}" fill="#111"/>
+      <text x="${ox - side * 8}" y="${oy - Lh + 4}" text-anchor="${east ? 'end' : 'start'}" font-size="10.5" fill="#111">True N</text>
+      <text x="${(tx + side * 7).toFixed(1)}" y="${(ty + 5).toFixed(1)}" text-anchor="${east ? 'start' : 'end'}" font-size="10.5" fill="#111">Mag N</text>
+    </svg><div class="nd">${fmtDecl(d)}</div>${exaggerated ? '<div class="nx">angle not to scale</div>' : ''}`;
+}
+$('#magOn').onchange = e => { state.magNorth = e.target.checked; updateNorth(); save(); };
 function zoomAll() {
   const list = visiblePaddocks().length ? visiblePaddocks() : state.paddocks;
   if (!list.length) { toast('No paddocks to zoom to yet'); return; }
@@ -1063,6 +1116,7 @@ function render() {
   renderHandles();
   renderSide();
   updateTools();
+  if (state.magNorth) updateNorth();
 }
 
 function divMarker(ll, html, extra) {
@@ -1400,8 +1454,37 @@ function commitUndo(snap) {
   undoStack.push(snap);
   if (undoStack.length > 80) undoStack.shift();
   redoStack.length = 0;
+  undoDirty = true;
 }
 function pushUndo() { commitUndo(snapshot()); }
+/* The undo and redo history is kept in this browser too, so a change can still be undone after the page is closed.
+   Newest steps are kept first; very old steps are dropped if the history gets too large for browser storage. */
+const UNDO_STORE = 'paddock-draw-undo-v1', UNDO_KEEP = 40, UNDO_MAX_CHARS = 2000000;
+function trimNewest(list) {
+  const out = []; let size = 0;
+  for (let i = list.length - 1; i >= 0 && out.length < UNDO_KEEP; i--) { size += list[i].length; if (size > UNDO_MAX_CHARS) break; out.unshift(list[i]); }
+  return out;
+}
+function saveUndo() {
+  let u = trimNewest(undoStack), r = trimNewest(redoStack);
+  for (let tries = 0; tries < 6; tries++) {
+    try { localStorage.setItem(UNDO_STORE, JSON.stringify({ current: snapshot(), undo: u, redo: r })); return; }
+    catch { u = u.slice(Math.ceil(u.length / 2)); r = r.slice(Math.ceil(r.length / 2)); }   // storage full: keep the newer half
+  }
+  try { localStorage.removeItem(UNDO_STORE); } catch { /* storage unavailable */ }
+}
+function loadUndo(afterClear) {
+  try {
+    const d = JSON.parse(localStorage.getItem(UNDO_STORE) || 'null');
+    if (!d || typeof d.current !== 'string' || !Array.isArray(d.undo) || !Array.isArray(d.redo)) return;
+    // only reuse the history if it belongs to exactly the paddocks that were loaded
+    // (or, after Clear all, to the empty map the examples replaced, so Clear all can still be undone)
+    const same = JSON.stringify(sanitizePaddocks(JSON.parse(d.current))) === JSON.stringify(sanitizePaddocks(state.paddocks));
+    if (!(afterClear ? d.current === '[]' : same)) return;
+    const ok = x => typeof x === 'string' && x.length < UNDO_MAX_CHARS && x.startsWith('[');
+    undoStack.push(...d.undo.filter(ok)); redoStack.push(...d.redo.filter(ok));
+  } catch { /* nothing usable */ }
+}
 function undo() {
   if (dragging) return;
   if (state.mode === 'draw' && state.draft && state.draft.pts.length) {
@@ -1420,6 +1503,7 @@ function redo() {
   restoreSnapshot(s);
 }
 function restoreSnapshot(s) {
+  undoDirty = true;
   state.paddocks = JSON.parse(s);
   if (state.selected && !byId(state.selected)) state.selected = null;
   state.selNode = null;
@@ -1468,7 +1552,7 @@ function renderSide() {
         <td>${s.shared.length ? s.shared.map(n => `<span class="tag">${esc(n)}</span>`).join(' ') : ''}</td></tr>`).join('');
     const corRows = P.ring.map((v, i) => {
       if (state.coord === 'mga') { const u = toUTM(v.lat, v.lng, S.zone); return `<tr data-cor="${i}"><td>C${i + 1}</td><td class="r">${nf(u.E, 2).replace(/,/g, ' ')}</td><td class="r">${nf(u.N, 2).replace(/,/g, ' ')}</td></tr>`; }
-      return `<tr data-cor="${i}"><td>C${i + 1}</td><td class="r">${v.lat.toFixed(7)}</td><td class="r">${v.lng.toFixed(7)}</td></tr>`;
+      return `<tr data-cor="${i}"><td>C${i + 1}</td><td class="r">${fmtLat(v.lat)}</td><td class="r">${fmtLng(v.lng)}</td></tr>`;
     }).join('');
     const corHead = state.coord === 'mga' ? '<th>Corner</th><th class="r">Easting</th><th class="r">Northing</th>' : '<th>Corner</th><th class="r">Latitude</th><th class="r">Longitude</th>';
     return `<article class="card sel${isHidden(P.id) ? ' hid' : ''}" data-id="${P.id}">${head}${warnLine}
@@ -1482,7 +1566,7 @@ function renderSide() {
         <h3>Fence lines <span>click a row for elevation</span></h3>
         <div class="tw"><table><thead><tr><th>Fence</th><th>Corners</th><th class="r">Length ${LU()}</th><th class="r">Bearing ${state.bearingRef === 'mag' ? 'mag' : 'true'}</th><th>Shared with</th></tr></thead><tbody>${fenceRows}</tbody></table></div>
         ${state.bearingRef === 'mag' ? `<p class="nest">Magnetic bearings = true − ${fmtDecl(S.decl)} declination (WMM 2025, today’s date).${DEC_YEAR >= 2030 ? ' The WMM 2025 model expired at the end of 2029, so this may be out by a fraction of a degree.' : ''}</p>` : ''}
-        <h3>Corners <span>${state.coord === 'mga' ? zlabel : 'decimal degrees'}</span></h3>
+        <h3>Corners <span>${state.coord === 'mga' ? zlabel : state.llFmt === 'dms' ? 'degrees, minutes, seconds' : 'decimal degrees'}</span></h3>
         <div class="tw"><table><thead><tr>${corHead}</tr></thead><tbody>${corRows}</tbody></table></div>
         <div class="card-a">
           <button class="btn" data-act="zoom">Zoom to</button>
@@ -1595,10 +1679,10 @@ function fenceRows() {
   return rows;
 }
 function cornerRows() {
-  const rows = [['paddock', 'corner', 'lat', 'lon', 'utm_zone', 'easting', 'northing']];
+  const rows = [['paddock', 'corner', 'lat', 'lon', 'lat_dms', 'lon_dms', 'utm_zone', 'easting', 'northing']];
   for (const P of state.paddocks) P.ring.forEach((v, i) => {
     const u = toUTM(v.lat, v.lng, S.zone);
-    rows.push([P.name, 'C' + (i + 1), v.lat.toFixed(7), v.lng.toFixed(7), S.zone + (S.south ? 'S' : 'N'), u.E.toFixed(3), u.N.toFixed(3)]);
+    rows.push([P.name, 'C' + (i + 1), v.lat.toFixed(7), v.lng.toFixed(7), llDms(v.lat, true), llDms(v.lng, false), S.zone + (S.south ? 'S' : 'N'), u.E.toFixed(3), u.N.toFixed(3)]);
   });
   return rows;
 }
@@ -1657,7 +1741,7 @@ function paddockTSV(P) {
   const lines = [`${P.name}\t${fmtArea(st.area)} ${areaU()}${st.children.length ? ` net (gross ${fmtArea(st.gross)} ${areaU()})` : ''}\tperimeter ${toLU(st.perim).toFixed(2)} ${LU()}`, '', `Fence\tFrom\tTo\tLength ${LU()}\tBearing ${brgRefLabel()}${state.bearingRef === 'mag' ? ` (declination ${fmtDecl(S.decl)})` : ''}\tShared with`];
   st.segs.forEach((s, i, a) => lines.push(`F${i + 1}\tC${i + 1}\tC${(i + 1) % a.length + 1}\t${toLU(s.d).toFixed(2)}\t${fmtBearing(shownBrg(s.brg, S.decl))}\t${s.shared.join('; ')}`));
   lines.push('', `Corner\tLatitude\tLongitude\tEasting\tNorthing (zone ${S.zone})`);
-  P.ring.forEach((v, i) => { const u = toUTM(v.lat, v.lng, S.zone); lines.push(`C${i + 1}\t${v.lat.toFixed(7)}\t${v.lng.toFixed(7)}\t${u.E.toFixed(3)}\t${u.N.toFixed(3)}`); });
+  P.ring.forEach((v, i) => { const u = toUTM(v.lat, v.lng, S.zone); lines.push(`C${i + 1}\t${fmtLat(v.lat)}\t${fmtLng(v.lng)}\t${u.E.toFixed(3)}\t${u.N.toFixed(3)}`); });
   return lines.join('\n');
 }
 function download(name, text, type) {
@@ -1776,6 +1860,11 @@ document.querySelectorAll('[data-bref]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-bref]').forEach(x => x.setAttribute('aria-pressed', x === b));
   renderSide(); if (state.mode === 'straighten') { renderStraight(); updateStraightBanner(); } save();
 });
+document.querySelectorAll('[data-llfmt]').forEach(b => b.onclick = () => {
+  state.llFmt = b.dataset.llfmt === 'dms' ? 'dms' : 'dec';
+  document.querySelectorAll('[data-llfmt]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  renderSide(); save();
+});
 document.querySelectorAll('[data-bfmt]').forEach(b => b.onclick = () => {
   state.bearingFmt = b.dataset.bfmt === 'dms' ? 'dms' : 'dec';
   document.querySelectorAll('[data-bfmt]').forEach(x => x.setAttribute('aria-pressed', x === b));
@@ -1798,9 +1887,25 @@ function updateSnapOut() {
   $('#snapOut').title = 'Snap distance on screen, and what it equals on the ground at the current zoom';
 }
 
+/** "34°34'48.5\"S 146°00'12\"E" (or with spaces instead of symbols) -> [lat, lng], or null. */
+function parseDmsPair(q) {
+  const re = /(\d{1,3})[°\s]+(\d{1,2})['′\s]+(\d{1,2}(?:\.\d+)?)["″]?\s*([NSEW])/gi;
+  const parts = [...q.matchAll(re)];
+  if (parts.length !== 2) return null;
+  let lat = null, lng = null;
+  for (const p of parts) {
+    let v = +p[1] + +p[2] / 60 + +p[3] / 3600;
+    const h = p[4].toUpperCase();
+    if (h === 'S' || h === 'W') v = -v;
+    if (h === 'N' || h === 'S') lat = v; else lng = v;
+  }
+  return lat != null && lng != null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? [lat, lng] : null;
+}
 $('#searchForm').addEventListener('submit', async e => {
   e.preventDefault();
   const q = $('#q').value.trim(); if (!q) return;
+  const dms = parseDmsPair(q);
+  if (dms) { map.setView(dms, 17); return; }
   const m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
   if (m) {
     const a = +m[1], b = +m[2];
@@ -1922,6 +2027,8 @@ function syncSettingsUI() {
   document.querySelectorAll('[data-len]').forEach(x => x.setAttribute('aria-pressed', x.dataset.len === state.lenUnit));
   document.querySelectorAll('[data-bref]').forEach(x => x.setAttribute('aria-pressed', x.dataset.bref === state.bearingRef));
   document.querySelectorAll('[data-bfmt]').forEach(x => x.setAttribute('aria-pressed', x.dataset.bfmt === state.bearingFmt));
+  document.querySelectorAll('[data-llfmt]').forEach(x => x.setAttribute('aria-pressed', x.dataset.llfmt === state.llFmt));
+  $('#magOn').checked = state.magNorth; updateNorth();
   updateSnapOut();
 }
 
@@ -1952,7 +2059,7 @@ $('#bSaveProj').onclick = () => {
   const proj = {
     app: 'paddock-draw', version: 1, saved: new Date().toISOString(),
     view: { lat: c.lat, lng: c.lng, zoom: map.getZoom() }, layer: state.layer,
-    settings: { snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM, brgRef: state.bearingRef, bearingFmt: state.bearingFmt, greyImg: state.greyImg, imgFadeOn: state.dimImg, imgFade: state.fade },
+    settings: { snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM, brgRef: state.bearingRef, bearingFmt: state.bearingFmt, greyImg: state.greyImg, imgFadeOn: state.dimImg, imgFade: state.fade, llFmt: state.llFmt, magNorth: state.magNorth },
     hidden: [...state.hidden].filter(id => byId(id)),
     paddocks: state.paddocks.map(P => ({ id: P.id, name: P.name, color: P.color, locked: !!P.locked, ring: P.ring.map(v => v.auto ? { lat: v.lat, lng: v.lng, auto: true } : { lat: v.lat, lng: v.lng }) }))
   };
@@ -1979,7 +2086,7 @@ $('#projIn').onchange = async e => {
   const st = d.settings || {};
   state.snap = st.snap !== false; state.snapPx = Math.min(40, Math.max(4, +st.snapPx || 14));
   state.showLengths = st.showLengths !== false; state.coord = st.coord === 'mga' ? 'mga' : 'll'; state.fill = st.fillOn === true; state.areaUnit = st.areaUnit === 'ac' ? 'ac' : 'ha'; state.lenUnit = st.lenUnit === 'ft' ? 'ft' : 'm'; state.showAreas = st.showAreas !== false; state.showNames = st.showNames !== false; state.buffer = st.buffer === true; state.bufferM = Math.min(50, Math.max(1, Math.round(+st.bufferM) || 15));
-  state.bearingRef = st.brgRef === 'mag' ? 'mag' : 'true'; state.greyImg = st.greyImg === true; state.dimImg = st.imgFadeOn === true; state.fade = clampFade(st.imgFade); state.bearingFmt = st.bearingFmt === 'dms' ? 'dms' : 'dec';
+  state.bearingRef = st.brgRef === 'mag' ? 'mag' : 'true'; state.greyImg = st.greyImg === true; state.dimImg = st.imgFadeOn === true; state.fade = clampFade(st.imgFade); state.llFmt = st.llFmt === 'dms' ? 'dms' : 'dec'; state.magNorth = st.magNorth === true; state.bearingFmt = st.bearingFmt === 'dms' ? 'dms' : 'dec';
   state.hidden = new Set((Array.isArray(d.hidden) ? d.hidden : []).filter(id => paddocks.some(P => P.id === id)));
   if (d.layer) setBase(d.layer);
   syncSettingsUI();
@@ -2506,12 +2613,13 @@ function toast(msg) {
 }
 
 function save() {
+  if (undoDirty) { undoDirty = false; saveUndo(); }
   try {
     const c = map.getCenter();
     localStorage.setItem(STORE, JSON.stringify({
       paddocks: state.paddocks, view: [c.lat, c.lng, map.getZoom()], base: state.layer,
       snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM,
-      brgRef: state.bearingRef, bearingFmt: state.bearingFmt, hidden: [...state.hidden].filter(id => byId(id)), greyImg: state.greyImg, imgFadeOn: state.dimImg, imgFade: state.fade
+      brgRef: state.bearingRef, bearingFmt: state.bearingFmt, hidden: [...state.hidden].filter(id => byId(id)), greyImg: state.greyImg, imgFadeOn: state.dimImg, imgFade: state.fade, llFmt: state.llFmt, magNorth: state.magNorth
     }));
   } catch { /* storage unavailable: work continues in memory */ }
 }
@@ -2526,7 +2634,7 @@ function load() {
     snap: d.snap !== false, snapPx: Math.min(40, Math.max(4, +d.snapPx || 14)), showLengths: d.showLengths !== false, coord: d.coord === 'mga' ? 'mga' : 'll',
     fill: d.fillOn === true, areaUnit: d.areaUnit === 'ac' ? 'ac' : 'ha', lenUnit: d.lenUnit === 'ft' ? 'ft' : 'm', showAreas: d.showAreas !== false, showNames: d.showNames !== false,
     buffer: d.buffer === true, bufferM: Math.min(50, Math.max(1, Math.round(+d.bufferM) || 15)),
-    bearingRef: d.brgRef === 'mag' ? 'mag' : 'true', greyImg: d.greyImg === true, dimImg: d.imgFadeOn === true, fade: clampFade(d.imgFade), bearingFmt: d.bearingFmt === 'dms' ? 'dms' : 'dec'
+    bearingRef: d.brgRef === 'mag' ? 'mag' : 'true', greyImg: d.greyImg === true, dimImg: d.imgFadeOn === true, fade: clampFade(d.imgFade), llFmt: d.llFmt === 'dms' ? 'dms' : 'dec', magNorth: d.magNorth === true, bearingFmt: d.bearingFmt === 'dms' ? 'dms' : 'dec'
   });
   const paddocks = sanitizePaddocks(d.paddocks);
   if (!paddocks.length) return false;           // nothing saved: open with the example paddocks
@@ -2557,6 +2665,8 @@ equalizeToggles();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(equalizeToggles);
 const had = load();
 if (!had) showExamples();
+else { stitch(); cleanup(); }
+loadUndo(!had);
 setBase(state.layer);
 syncSettingsUI();
 stitch(); cleanup();
