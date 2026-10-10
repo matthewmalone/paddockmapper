@@ -287,7 +287,7 @@ Please enable JavaScript to use it.</p></noscript>
   <aside class="side">
     <section class="head">
       <h1>Paddock Draw</h1>
-      <a class="site" href="https://www.paddockdraw.com" target="_blank" rel="noopener">www.paddockdraw.com</a>
+      <a class="site" href="https://www.paddockdraw.com/" target="_blank" rel="noopener noreferrer" title="Open www.paddockdraw.com in a new tab">www.paddockdraw.com</a>
       <form class="search" id="searchForm">
         <input id="q" type="search" placeholder="Place name, or lat, lon" aria-label="Search for a place or coordinates" autocomplete="off">
         <button class="btn" type="submit">Go</button>
@@ -615,9 +615,6 @@ const bases = {
   'Google Hybrid': gTiles('y'),
   'Google Map': gTiles('m'),
   'Google Terrain': gTiles('p'),
-  'OpenStreetMap (Carto)': L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    maxNativeZoom: 20, maxZoom: 21, subdomains: 'abcd',
-    attribution: OSM_ATTR + ' &copy; <a href="https://carto.com/attributions">CARTO</a>' }),
   'Satellite (Esri)': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxNativeZoom: 19, maxZoom: 21,
     attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics' }),
