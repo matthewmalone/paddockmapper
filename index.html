@@ -160,9 +160,12 @@ tr[data-seg]{cursor:pointer}
 .row{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px}
 .check{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
 .check input{width:17px;height:17px;accent-color:var(--accent)}
-.range{display:flex;align-items:center;gap:10px;flex:1;min-width:180px}
-.range input{flex:1;accent-color:var(--accent)}
-.range output{font:500 12.5px var(--f-mono);color:var(--muted);white-space:nowrap}
+.sliders{display:grid;grid-template-columns:max-content minmax(0,1fr) max-content;align-items:center;gap:10px 12px}
+.sliders input[type=range]{width:100%;margin:0;accent-color:var(--accent)}
+.sliders output{font:500 12.5px var(--f-mono);color:var(--muted);white-space:nowrap;text-align:right;min-width:5.6rem}
+.dimwrap{position:relative;display:flex;align-items:center}
+.dimtick{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--mid);pointer-events:none}
+@media (max-width:400px){.sliders{gap:10px 8px}.sliders output{min-width:5rem}}
 .segc{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .segc button{height:32px;padding:0 12px;border:0;background:var(--panel);font:600 13.5px var(--f-head);cursor:pointer;color:var(--muted)}
 .segc button + button{border-left:1px solid var(--line)}
@@ -316,18 +319,19 @@ Please enable JavaScript to use it.</p></noscript>
 
     <section class="settings">
       <h2>Settings</h2>
-      <div class="row">
+      <div class="sliders">
         <label class="check"><input type="checkbox" id="snapOn" checked> Snap</label>
-        <div class="range"><input type="range" id="snapPx" min="4" max="40" step="1" value="14" aria-label="Snap distance in screen pixels"><output id="snapOut"></output></div>
-      </div>
-      <div class="row">
+        <input type="range" id="snapPx" min="4" max="40" step="1" value="14" aria-label="Snap distance in screen pixels"><output id="snapOut"></output>
         <label class="check"><input type="checkbox" id="bufOn"> Visual buffer</label>
-        <div class="range"><input type="range" id="bufM" min="1" max="50" step="1" value="15" aria-label="Visual buffer distance in metres" disabled><output id="bufOut"></output></div>
+        <input type="range" id="bufM" min="1" max="50" step="1" value="15" aria-label="Visual buffer distance in metres" disabled><output id="bufOut"></output>
+        <label class="check"><input type="checkbox" id="dimOn"> Dim imagery</label>
+        <div class="dimwrap"><input type="range" id="dimPct" min="-100" max="100" step="5" value="0" aria-label="Fade the map imagery: left towards white, right towards black" disabled><span class="dimtick" aria-hidden="true"></span></div><output id="dimOut"></output>
       </div>
+      <div class="row"><label class="check"><input type="checkbox" id="greyOn"> Greyscale imagery</label></div>
       <div class="row"><label class="check"><input type="checkbox" id="fillOn"> Fill paddocks</label></div>
-      <div class="row"><label class="check"><input type="checkbox" id="lenOn" checked> Fence lengths on map</label></div>
-      <div class="row"><label class="check"><input type="checkbox" id="nameOn" checked> Paddock names on map</label></div>
-      <div class="row"><label class="check"><input type="checkbox" id="areaOn" checked> Paddock areas on map</label></div>
+      <div class="row"><label class="check"><input type="checkbox" id="lenOn" checked> Show fence lengths</label></div>
+      <div class="row"><label class="check"><input type="checkbox" id="nameOn" checked> Show paddock names</label></div>
+      <div class="row"><label class="check"><input type="checkbox" id="areaOn" checked> Show paddock areas</label></div>
       <div class="row seg-row"><span class="seg-l">Coordinates</span>
         <div class="segc" role="group" aria-label="Coordinate format">
           <button type="button" data-coord="ll" aria-pressed="true">Lat / Lon</button>
@@ -348,8 +352,8 @@ Please enable JavaScript to use it.</p></noscript>
       </div>
       <div class="row seg-row"><span class="seg-l">Bearings</span>
         <div class="segc" role="group" aria-label="Bearing reference">
-          <button type="button" data-bref="mag" aria-pressed="true">Magnetic</button>
-          <button type="button" data-bref="true" aria-pressed="false">True</button>
+          <button type="button" data-bref="true" aria-pressed="true">True</button>
+          <button type="button" data-bref="mag" aria-pressed="false">Magnetic</button>
         </div>
       </div>
       <div class="row seg-row"><span class="seg-l">Bearing format</span>
@@ -391,7 +395,7 @@ Please enable JavaScript to use it.</p></noscript>
       <p><kbd>S</kbd> straighten · click a fence to use as the reference, then click other fences to give them the same bearing (or the exact opposite). The end nearer the reference stays put and the other corner moves the shortest distance onto the new line.</p>
       <p><kbd>L</kbd> match length · click a fence to use as the reference, then hover another fence near the corner you want to move (a ring marks it) and click; that corner slides along the fence, keeping its bearing, until the fence is the same length.</p>
       <p><kbd>Z</kbd> zooms to all visible paddocks. The eye on a paddock's card hides it on the map (it still counts in totals and exports).</p>
-      <p>Magnetic bearings use the World Magnetic Model (WMM 2025) for today's date, with one declination for the whole map so parallel fences read the same.</p>
+      <p>Magnetic bearings use the World Magnetic Model (WMM 2025) for today's date, with one declination for the whole map so parallel fences read the same. WMM 2025 is valid until the end of 2029; from 2030 the page needs updating to WMM 2030, and until then magnetic bearings will slowly lose accuracy. True bearings are not affected.</p>
       <p><kbd>E</kbd> edit · drag a corner to move it (shared corners move together) · drag a small midpoint dot to add a corner · right-click or <kbd>Delete</kbd> removes a corner · hold <kbd>Alt</kbd> while dragging to separate a shared corner from the selected paddock.</p>
       <p>Elevation profiles use SRTM 30 m satellite elevation data (Open Topo Data), falling back to Copernicus 90 m (Open-Meteo). They show the lie of the land well, but individual heights can be out by a few metres, so they are for planning, not survey levels.</p>
       <p>Lengths and bearings are on the WGS84 ellipsoid (Vincenty), bearings are true. MGA coordinates use GRS80; GDA2020 and WGS84 positions agree to within about 1–2 m, which is less than typical imagery error.</p>
@@ -677,7 +681,7 @@ const state = {
   paddocks: [], selected: null, selNode: null,
   mode: 'view', draft: null,
   snap: true, snapPx: 14, showLengths: true, coord: 'll',
-  layer: 'Google Satellite', fill: false, showAreas: true, showNames: true, buffer: false, bufferM: 15, bearingRef: 'mag', bearingFmt: 'dec', hidden: new Set(), areaUnit: 'ha', lenUnit: 'm', measure: null
+  layer: 'Google Satellite', fill: false, showAreas: true, showNames: true, buffer: false, bufferM: 15, bearingRef: 'true', bearingFmt: 'dec', greyImg: false, dimImg: false, fade: 0, hidden: new Set(), areaUnit: 'ha', lenUnit: 'm', measure: null
 };
 let S = null;               // computed stats cache
 let altDown = false;
@@ -913,10 +917,12 @@ function pickColor(ring) {
     const c = P.color.toLowerCase();
     use.set(c, (use.get(c) || 0) + 1);
     const Q = P.ring.map(p => toXY(F, p));
-    if (Q.every(p => p[0] < box[0] || p[0] > box[2] || p[1] < box[1] || p[1] > box[3]) && !pointInRing(Q[0], R) && !pointInRing(R[0], Q)) continue;
+    const qx = Q.map(p => p[0]), qy = Q.map(p => p[1]);
+    if (Math.max(...qx) < box[0] || Math.min(...qx) > box[2] || Math.max(...qy) < box[1] || Math.min(...qy) > box[3]) continue;
     const touching = R.some(pt => distToRing(pt, Q) < 3) || Q.some(pt => distToRing(pt, R) < 3);
     const nested = pointInRing(R[0], Q) || pointInRing(Q[0], R);
-    if (touching || nested) near.add(c);
+    const crossing = !touching && !nested && R.some((p0, i) => Q.some((q0, j) => segCross(p0, R[(i + 1) % R.length], q0, Q[(j + 1) % Q.length])));
+    if (touching || nested || crossing) near.add(c);
   }
   const free = COLORS.filter(c => !near.has(c.toLowerCase()));
   const pool = free.length ? free : COLORS;
@@ -1188,6 +1194,7 @@ function attachDrag(mk, getMembers, undoInside) {
     dragLayer.clearLayers();
     const seen = new Set();
     for (const pid of affected) {
+      if (isHidden(pid)) continue;
       const P = byId(pid), n = P.ring.length;
       for (let i = 0; i < n; i++) {
         const a = P.ring[i], b = P.ring[(i + 1) % n];
@@ -1474,7 +1481,7 @@ function renderSide() {
         </div>
         <h3>Fence lines <span>click a row for elevation</span></h3>
         <div class="tw"><table><thead><tr><th>Fence</th><th>Corners</th><th class="r">Length ${LU()}</th><th class="r">Bearing ${state.bearingRef === 'mag' ? 'mag' : 'true'}</th><th>Shared with</th></tr></thead><tbody>${fenceRows}</tbody></table></div>
-        ${state.bearingRef === 'mag' ? `<p class="nest">Magnetic bearings = true − ${fmtDecl(S.decl)} declination (WMM 2025, today’s date).</p>` : ''}
+        ${state.bearingRef === 'mag' ? `<p class="nest">Magnetic bearings = true − ${fmtDecl(S.decl)} declination (WMM 2025, today’s date).${DEC_YEAR >= 2030 ? ' The WMM 2025 model expired at the end of 2029, so this may be out by a fraction of a degree.' : ''}</p>` : ''}
         <h3>Corners <span>${state.coord === 'mga' ? zlabel : 'decimal degrees'}</span></h3>
         <div class="tw"><table><thead><tr>${corHead}</tr></thead><tbody>${corRows}</tbody></table></div>
         <div class="card-a">
@@ -1765,7 +1772,7 @@ document.querySelectorAll('[data-len]').forEach(b => b.onclick = () => {
   save();
 });
 document.querySelectorAll('[data-bref]').forEach(b => b.onclick = () => {
-  state.bearingRef = b.dataset.bref === 'true' ? 'true' : 'mag';
+  state.bearingRef = b.dataset.bref === 'mag' ? 'mag' : 'true';
   document.querySelectorAll('[data-bref]').forEach(x => x.setAttribute('aria-pressed', x === b));
   renderSide(); if (state.mode === 'straighten') { renderStraight(); updateStraightBanner(); } save();
 });
@@ -1884,13 +1891,30 @@ function updateBufferWeight() {
 }
 function updateBufferOut() {
   const v = toLU(state.bufferM);
-  $('#bufOut').textContent = state.buffer ? `${nf(v, v < 10 ? 1 : 0)} ${LU()} each side` : 'off';
+  $('#bufOut').textContent = state.buffer ? `${nf(v, v < 10 ? 1 : 0)} ${LU()}` : 'off';
 }
 $('#bufOn').onchange = e => { state.buffer = e.target.checked; $('#bufM').disabled = !state.buffer; updateBufferOut(); renderBuffer(); save(); };
 $('#bufM').oninput = e => { state.bufferM = Math.min(50, Math.max(1, +e.target.value || 15)); updateBufferOut(); if (bufferLine) updateBufferWeight(); else renderBuffer(); save(); };
 
+/* ----- imagery: greyscale and dimming apply to the map tiles only, never to fences or labels ----- */
+const clampFade = v => Math.min(100, Math.max(-100, Math.round((+v || 0) / 5) * 5));
+function applyImagery() {
+  const tiles = map.getPane('tilePane');
+  tiles.style.filter = state.greyImg ? 'grayscale(1)' : '';
+  // fading lets the map background show through: black to the right of centre, white to the left
+  const f = state.dimImg ? state.fade : 0;
+  tiles.style.opacity = f ? String(1 - Math.abs(f) / 100) : '';
+  map.getContainer().style.background = f > 0 ? '#000' : f < 0 ? '#fff' : '';
+  $('#dimOut').textContent = !state.dimImg ? 'off' : f === 0 ? 'none' : `${f > 0 ? 'Black' : 'White'} ${Math.abs(f)}%`;
+}
+$('#greyOn').onchange = e => { state.greyImg = e.target.checked; applyImagery(); save(); };
+$('#dimOn').onchange = e => { state.dimImg = e.target.checked; $('#dimPct').disabled = !state.dimImg; applyImagery(); save(); };
+$('#dimPct').oninput = e => { state.fade = clampFade(e.target.value); applyImagery(); save(); };
+$('#dimPct').ondblclick = () => { state.fade = 0; $('#dimPct').value = 0; applyImagery(); save(); };
+
 function syncSettingsUI() {
   $('#snapOn').checked = state.snap; $('#snapPx').value = state.snapPx; $('#snapPx').disabled = !state.snap;
+  $('#greyOn').checked = state.greyImg; $('#dimOn').checked = state.dimImg; $('#dimPct').value = state.fade; $('#dimPct').disabled = !state.dimImg; applyImagery();
   $('#bufOn').checked = state.buffer; $('#bufM').value = state.bufferM; $('#bufM').disabled = !state.buffer; updateBufferOut();
   $('#lenOn').checked = state.showLengths; $('#areaOn').checked = state.showAreas; $('#nameOn').checked = state.showNames; $('#fillOn').checked = state.fill; $('#bFill').setAttribute('aria-pressed', state.fill);
   document.querySelectorAll('[data-coord]').forEach(x => x.setAttribute('aria-pressed', x.dataset.coord === state.coord));
@@ -1928,8 +1952,8 @@ $('#bSaveProj').onclick = () => {
   const proj = {
     app: 'paddock-draw', version: 1, saved: new Date().toISOString(),
     view: { lat: c.lat, lng: c.lng, zoom: map.getZoom() }, layer: state.layer,
-    settings: { snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM, bearingRef: state.bearingRef, bearingFmt: state.bearingFmt },
-    hidden: [...state.hidden],
+    settings: { snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM, brgRef: state.bearingRef, bearingFmt: state.bearingFmt, greyImg: state.greyImg, imgFadeOn: state.dimImg, imgFade: state.fade },
+    hidden: [...state.hidden].filter(id => byId(id)),
     paddocks: state.paddocks.map(P => ({ id: P.id, name: P.name, color: P.color, locked: !!P.locked, ring: P.ring.map(v => v.auto ? { lat: v.lat, lng: v.lng, auto: true } : { lat: v.lat, lng: v.lng }) }))
   };
   download(`paddocks-${stamp()}.paddocks.json`, JSON.stringify(proj, null, 1), 'application/json');
@@ -1955,7 +1979,7 @@ $('#projIn').onchange = async e => {
   const st = d.settings || {};
   state.snap = st.snap !== false; state.snapPx = Math.min(40, Math.max(4, +st.snapPx || 14));
   state.showLengths = st.showLengths !== false; state.coord = st.coord === 'mga' ? 'mga' : 'll'; state.fill = st.fillOn === true; state.areaUnit = st.areaUnit === 'ac' ? 'ac' : 'ha'; state.lenUnit = st.lenUnit === 'ft' ? 'ft' : 'm'; state.showAreas = st.showAreas !== false; state.showNames = st.showNames !== false; state.buffer = st.buffer === true; state.bufferM = Math.min(50, Math.max(1, Math.round(+st.bufferM) || 15));
-  state.bearingRef = st.bearingRef === 'true' ? 'true' : 'mag'; state.bearingFmt = st.bearingFmt === 'dms' ? 'dms' : 'dec';
+  state.bearingRef = st.brgRef === 'mag' ? 'mag' : 'true'; state.greyImg = st.greyImg === true; state.dimImg = st.imgFadeOn === true; state.fade = clampFade(st.imgFade); state.bearingFmt = st.bearingFmt === 'dms' ? 'dms' : 'dec';
   state.hidden = new Set((Array.isArray(d.hidden) ? d.hidden : []).filter(id => paddocks.some(P => P.id === id)));
   if (d.layer) setBase(d.layer);
   syncSettingsUI();
@@ -2487,7 +2511,7 @@ function save() {
     localStorage.setItem(STORE, JSON.stringify({
       paddocks: state.paddocks, view: [c.lat, c.lng, map.getZoom()], base: state.layer,
       snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM,
-      bearingRef: state.bearingRef, bearingFmt: state.bearingFmt, hidden: [...state.hidden]
+      brgRef: state.bearingRef, bearingFmt: state.bearingFmt, hidden: [...state.hidden].filter(id => byId(id)), greyImg: state.greyImg, imgFadeOn: state.dimImg, imgFade: state.fade
     }));
   } catch { /* storage unavailable: work continues in memory */ }
 }
@@ -2502,7 +2526,7 @@ function load() {
     snap: d.snap !== false, snapPx: Math.min(40, Math.max(4, +d.snapPx || 14)), showLengths: d.showLengths !== false, coord: d.coord === 'mga' ? 'mga' : 'll',
     fill: d.fillOn === true, areaUnit: d.areaUnit === 'ac' ? 'ac' : 'ha', lenUnit: d.lenUnit === 'ft' ? 'ft' : 'm', showAreas: d.showAreas !== false, showNames: d.showNames !== false,
     buffer: d.buffer === true, bufferM: Math.min(50, Math.max(1, Math.round(+d.bufferM) || 15)),
-    bearingRef: d.bearingRef === 'true' ? 'true' : 'mag', bearingFmt: d.bearingFmt === 'dms' ? 'dms' : 'dec'
+    bearingRef: d.brgRef === 'mag' ? 'mag' : 'true', greyImg: d.greyImg === true, dimImg: d.imgFadeOn === true, fade: clampFade(d.imgFade), bearingFmt: d.bearingFmt === 'dms' ? 'dms' : 'dec'
   });
   const paddocks = sanitizePaddocks(d.paddocks);
   if (!paddocks.length) return false;           // nothing saved: open with the example paddocks
