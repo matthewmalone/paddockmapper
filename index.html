@@ -1,9 +1,33 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-AU">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Paddock Mapper</title>
+<title>Paddock Draw – Paddock &amp; Fence Line Mapping Tool</title>
+<meta name="description" content="Free online paddock and fence mapping tool. Draw paddocks on satellite maps, measure fence lengths, bearings and areas in hectares or acres, and export coordinates to CSV, KML and GeoJSON.">
+<meta name="keywords" content="paddock map, fence line calculator, farm mapping, paddock area, fence length, property boundary map, hectares, acres, KML, GeoJSON">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Paddock Draw">
+<meta name="application-name" content="Paddock Draw">
+<meta name="theme-color" content="#111111">
+<link rel="canonical" href="https://www.paddockdraw.com/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23111'/%3E%3Cpath d='M6 17.5 7.6 7l9.4 1.8.9 8.7z' fill='none' stroke='%23fff' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Paddock Draw">
+<meta property="og:title" content="Paddock Draw – Paddock &amp; Fence Line Mapping Tool">
+<meta property="og:description" content="Free online paddock and fence mapping tool. Draw paddocks on satellite maps, measure fence lengths, bearings and areas in hectares or acres, and export coordinates to CSV, KML and GeoJSON.">
+<meta property="og:url" content="https://www.paddockdraw.com/">
+<meta property="og:locale" content="en_AU">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Paddock Draw – Paddock &amp; Fence Line Mapping Tool">
+<meta name="twitter:description" content="Free online paddock and fence mapping tool. Draw paddocks on satellite maps, measure fence lengths, bearings and areas in hectares or acres, and export coordinates to CSV, KML and GeoJSON.">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Paddock Draw","url":"https://www.paddockdraw.com/",
+ "applicationCategory":"UtilitiesApplication","operatingSystem":"Any (web browser)",
+ "description":"Free online paddock and fence mapping tool. Draw paddocks on satellite maps, measure fence lengths, bearings and areas in hectares or acres, and export coordinates to CSV, KML and GeoJSON.",
+ "offers":{"@type":"Offer","price":"0","priceCurrency":"AUD"},
+ "featureList":["Draw paddocks on satellite and street maps","Fence lengths and true bearings","Paddock areas in hectares or acres","Shared fences and nested paddocks","Elevation profiles along fences","Export to CSV, KML and GeoJSON"]}
+</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 /* Layout: full-height map with a field-book side panel; panel drops below the map on phones. */
@@ -100,9 +124,14 @@ tr[data-seg]{cursor:pointer}
 .leaflet-control-layers,.leaflet-bar a{background:var(--panel)!important;color:var(--ink)!important;border-color:var(--line)!important}
 .leaflet-control-layers{border-radius:8px!important;box-shadow:0 1px 3px rgb(0 0 0/.18)!important}
 .leaflet-control-layers-expanded{padding:8px 12px;font-size:14px}
+.leaflet-control-layers-toggle,.leaflet-retina .leaflet-control-layers-toggle,.leaflet-touch .leaflet-control-layers-toggle{background-image:none!important;width:38px!important;height:38px!important;display:grid!important;place-items:center;color:var(--ink)!important}
+.leaflet-control-layers-toggle svg{width:20px;height:20px}
+.leaflet-control-layers-expanded .leaflet-control-layers-toggle{display:none!important}
 
 /* ---------- side panel ---------- */
-.head h1{margin:0 0 12px;font:700 24px/1.1 var(--f-head);letter-spacing:.01em;text-wrap:balance}
+.head .site{display:inline-block;margin:0 0 12px;font-size:13px;color:var(--muted);text-decoration:none}
+.head .site:hover{color:var(--ink);text-decoration:underline}
+.head h1{margin:0 0 2px;font:700 24px/1.1 var(--f-head);letter-spacing:.01em;text-wrap:balance}
 .search{display:flex;gap:6px}
 .search .btn{flex:none}
 .search input{flex:1;min-width:0;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
@@ -157,6 +186,7 @@ h2{margin:0;font:700 16px var(--f-head);text-transform:uppercase;letter-spacing:
 .lk[aria-pressed="true"]{color:var(--ink);background:var(--panel);border-color:var(--line)}
 .btn:disabled{color:var(--muted);cursor:default}
 .warn{margin:-2px 10px 8px;padding:5px 8px;border-left:3px solid var(--ink);background:var(--soft);font-size:13px;font-weight:600}
+.nest{margin:0;font-size:13px;color:var(--muted)}
 .card-b{padding:0 10px 12px;display:grid;gap:10px}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .stats b{display:block;font:500 15px var(--f-mono);font-variant-numeric:tabular-nums}
@@ -181,39 +211,42 @@ tr[data-seg]:hover td,tr[data-cor]:hover td{background:var(--soft)}
 </style>
 </head>
 <body>
+<noscript><p style="padding:16px">Paddock Draw is a free online tool for drawing paddocks and fence lines on satellite maps,
+measuring fence lengths, bearings and areas (hectares or acres), and exporting coordinates to CSV, KML and GeoJSON.
+Please enable JavaScript to use it.</p></noscript>
 <div class="app">
   <div class="mapwrap">
     <div id="map" aria-label="Map"></div>
     <div class="tools" id="tools">
       <button class="tool" id="bDraw" aria-pressed="false" title="Draw a paddock (D)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 18 7 5l11 3 2 10z"/><circle cx="4" cy="18" r="1.6" fill="currentColor"/><circle cx="7" cy="5" r="1.6" fill="currentColor"/><circle cx="18" cy="8" r="1.6" fill="currentColor"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 18 7 6l11 2 1 10z"/></svg>
         <span>Draw paddock</span><kbd>D</kbd></button>
       <button class="tool" id="bEdit" aria-pressed="false" title="Move, add and delete corners (E)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19 12 5l7 14z" stroke-dasharray="3 2.5"/><rect x="9.5" y="2.5" width="5" height="5" fill="currentColor" stroke="none"/><rect x="2.5" y="16.5" width="5" height="5"/><rect x="16.5" y="16.5" width="5" height="5"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h6M18 9v6M15 18H9M6 15V9"/><rect x="4.5" y="4.5" width="3" height="3"/><rect x="16.5" y="4.5" width="3" height="3"/><rect x="16.5" y="16.5" width="3" height="3"/><rect x="4.5" y="16.5" width="3" height="3"/></svg>
         <span>Edit corners</span><kbd>E</kbd></button>
       <button class="tool" id="bMeasure" aria-pressed="false" title="Measure a distance or area (M)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="8" width="19" height="8" rx="1"/><path d="M6.5 8v3.5M10.5 8v2M14.5 8v3.5M18.5 8v2" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="18" height="6" rx="1"/><path d="M7 9v2.5M11 9v1.5M15 9v2.5"/></svg>
         <span>Measure</span><kbd>M</kbd></button>
       <button class="tool" id="bStraight" aria-pressed="false" title="Give fences the same bearing as a reference fence (S)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7h18"/><path d="M3 17h18" stroke-dasharray="3 3"/><path d="m16 13 3 4-3 4" stroke-width="1.6"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10 20 6M4 18l16-4"/></svg>
         <span>Straighten</span><kbd>S</kbd></button>
       <button class="tool" id="bMatch" aria-pressed="false" title="Give fences the same length as a reference fence (L)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 4v6M20 4v6"/><path d="M4 17h16M4 14v6M20 14v6" stroke-dasharray="3 3"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14M5 16h14M5 6.5v3M19 6.5v3M5 14.5v3M19 14.5v3"/></svg>
         <span>Match length</span><kbd>L</kbd></button>
       <button class="tool" id="bDelNode" disabled title="Delete the selected corner (Delete)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg>
         <span>Delete corner</span></button>
       <button class="tool" id="bFill" aria-pressed="false" title="Fill paddocks, or show boundaries only (F)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="1"/><path d="M3.5 13 13 3.5M3.5 20.5 20.5 3.5M11 20.5l9.5-9.5" stroke-width="1.6"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 12l8-8M4 20 20 4M12 20l8-8"/></svg>
         <span>Fill</span><kbd>F</kbd></button>
       <button class="tool" id="bUndo" disabled title="Undo (Ctrl+Z)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7 5 11l4 4"/><path d="M5 11h9a5 5 0 0 1 0 10h-2"/></svg>
         <span>Undo</span></button>
       <button class="tool" id="bRedo" disabled title="Redo (Ctrl+Y or Ctrl+Shift+Z)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 7 4 4-4 4"/><path d="M19 11h-9a5 5 0 0 0 0 10h2"/></svg>
         <span>Redo</span></button>
       <button class="tool" id="bLocate" title="Go to my location">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
         <span>My location</span></button>
     </div>
     <div class="banner" id="banner" hidden>
@@ -253,7 +286,8 @@ tr[data-seg]:hover td,tr[data-cor]:hover td{background:var(--soft)}
 
   <aside class="side">
     <section class="head">
-      <h1>Paddock Mapper</h1>
+      <h1>Paddock Draw</h1>
+      <a class="site" href="https://www.paddockdraw.com" target="_blank" rel="noopener">www.paddockdraw.com</a>
       <form class="search" id="searchForm">
         <input id="q" type="search" placeholder="Place name, or lat, lon" aria-label="Search for a place or coordinates" autocomplete="off">
         <button class="btn" type="submit">Go</button>
@@ -276,6 +310,10 @@ tr[data-seg]:hover td,tr[data-cor]:hover td{background:var(--soft)}
       <div class="row">
         <label class="check"><input type="checkbox" id="snapOn" checked> Snap</label>
         <div class="range"><input type="range" id="snapPx" min="4" max="40" step="1" value="14" aria-label="Snap distance in screen pixels"><output id="snapOut"></output></div>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="bufOn"> Visual buffer</label>
+        <div class="range"><input type="range" id="bufM" min="1" max="50" step="1" value="15" aria-label="Visual buffer distance in metres" disabled><output id="bufOut"></output></div>
       </div>
       <div class="row"><label class="check"><input type="checkbox" id="fillOn"> Fill paddocks</label></div>
       <div class="row"><label class="check"><input type="checkbox" id="lenOn" checked> Fence lengths on map</label></div>
@@ -499,15 +537,16 @@ function distToRing(pt, xy) {
   return m;
 }
 /** A point inside the polygon for its label: the centroid if it is inside, else the middle of the widest span through it. */
-function labelPoint(ring, centroid) {
+function labelPoint(ring, centroid, holes) {
   const F = localFrame(centroid), xy = ring.map(p => toXY(F, p));
-  if (pointInRing([0, 0], xy)) return centroid;
+  const hxy = (holes || []).map(h => h.map(p => toXY(F, p)));
+  if (pointInRing([0, 0], xy) && !hxy.some(h => pointInRing([0, 0], h))) return centroid;
   const ys = xy.map(p => p[1]), y0 = Math.min(...ys), y1 = Math.max(...ys);
   let best = null, bw = -1;
-  for (let k = 1; k < 12; k++) {
-    const y = y0 + (y1 - y0) * k / 12, xs = [];
-    for (let i = 0, j = xy.length - 1; i < xy.length; j = i++) {
-      const [xi, yi] = xy[i], [xj, yj] = xy[j];
+  for (let k = 1; k < 24; k++) {
+    const y = y0 + (y1 - y0) * k / 24, xs = [];
+    for (const R of [xy, ...hxy]) for (let i = 0, j = R.length - 1; i < R.length; j = i++) {
+      const [xi, yi] = R[i], [xj, yj] = R[j];
       if ((yi > y) !== (yj > y)) xs.push((xj - xi) * (y - yi) / (yj - yi) + xi);
     }
     xs.sort((a, b) => a - b);
@@ -523,7 +562,7 @@ if (typeof L === 'undefined') {
 }
 
 /* ================= state ================= */
-const STORE = 'paddock-mapper-v1';
+const STORE = 'paddock-mapper-v1';   // storage key kept from the earlier name so saved work still loads
 const COLORS = ['#F2B807', '#13A8C9', '#E2367F', '#5DAA2E', '#F26B1D', '#8661E8', '#0FB39A', '#C9413A'];
 const STITCH_M = 0.15;            // a corner this close to another paddock's fence is joined into it
 const COARSE = matchMedia('(pointer: coarse)').matches;
@@ -533,7 +572,7 @@ const state = {
   paddocks: [], selected: null, selNode: null,
   mode: 'view', draft: null,
   snap: true, snapPx: 14, showLengths: true, coord: 'll',
-  layer: 'Google Satellite', fill: false, showAreas: true, showNames: true, areaUnit: 'ha', lenUnit: 'm', measure: null
+  layer: 'Google Satellite', fill: false, showAreas: true, showNames: true, buffer: false, bufferM: 15, areaUnit: 'ha', lenUnit: 'm', measure: null
 };
 let S = null;               // computed stats cache
 let altDown = false;
@@ -592,9 +631,19 @@ if (/^https?:$/.test(location.protocol)) {
   bases['OpenStreetMap (standard)'] = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxNativeZoom: 19, maxZoom: 21, referrerPolicy: 'strict-origin-when-cross-origin', attribution: OSM_ATTR });
 }
-L.control.layers(bases, null, { position: 'topright' }).addTo(map);
+const layersCtl = L.control.layers(bases, null, { position: 'topright' }).addTo(map);
+{ // our own icon, drawn like the toolbar icons (replaces Leaflet's layers.png)
+  const t = layersCtl.getContainer().querySelector('.leaflet-control-layers-toggle');
+  if (t) { t.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 4 8 4-8 4-8-4z"/><path d="m4 12 8 4 8-4"/><path d="m4 16 8 4 8-4"/></svg>'; t.setAttribute('aria-label', 'Map layers'); t.title = 'Map layers'; }
+}
 map.on('baselayerchange', e => { state.layer = e.name; save(); });
 
+map.createPane('bufferPane');
+map.getPane('bufferPane').style.zIndex = 390;          // just below the fences (overlay pane is 400)
+map.getPane('bufferPane').style.opacity = '0.65';      // whole band is see-through, edges included
+map.getPane('bufferPane').style.pointerEvents = 'none';
+const bufferRenderer = L.svg({ pane: 'bufferPane', padding: 0.5 });
+const bufferLayer = L.layerGroup().addTo(map);
 const polyLayer = L.layerGroup().addTo(map);
 const hiLayer = L.layerGroup().addTo(map);
 const labelLayer = L.layerGroup().addTo(map);
@@ -742,44 +791,70 @@ function computeAll() {
     fence += E.len;
     if (new Set(E.owners.map(o => o.pid)).size > 1) shared += E.len;
   }
+  // a paddock drawn inside another is subtracted from it (like a hole), so areas are never counted twice
+  const { warn, parent } = checkGeometry();
+  for (const P of state.paddocks) { const st = per.get(P.id); st.gross = st.area; st.children = []; st.parent = parent.get(P.id) || null; }
+  for (const [cid, pid] of parent) per.get(pid).children.push(cid);
   for (const P of state.paddocks) {
     const st = per.get(P.id);
+    st.area = Math.max(0, st.gross - st.children.reduce((a, c) => a + per.get(c).gross, 0));
     area += st.area;
     for (const s of st.segs) s.shared = edges.get(s.ek).owners.filter(o => o.pid !== P.id).map(o => byId(o.pid).name);
   }
-  const warn = checkGeometry();
   const zone = cnt ? Math.floor((lngSum / cnt + 180) / 6) + 1 : 55;
   const south = cnt ? latSum / cnt < 0 : true;
   return { per, edges, warn, total: { area, fence, shared, count: state.paddocks.length }, zone, south };
 }
 
-/** Paddocks whose own fences cross, or that overlap another paddock (their areas would be double counted). */
+/** Paddocks whose own fences cross, or that partly overlap another paddock (areas would be double counted).
+    A paddock lying wholly inside another (it may share some of its fences) is nested, not a clash:
+    it is returned in parent (child id -> id of the smallest paddock containing it). */
 function checkGeometry() {
-  const warn = new Map(), add = (id, m) => { if (!warn.has(id)) warn.set(id, []); if (!warn.get(id).includes(m)) warn.get(id).push(m); };
+  const warn = new Map(), parent = new Map();
+  const add = (id, m) => { if (!warn.has(id)) warn.set(id, []); if (!warn.get(id).includes(m)) warn.get(id).push(m); };
   const Ps = state.paddocks;
-  if (!Ps.length) return warn;
+  if (!Ps.length) return { warn, parent };
   const F = localFrame(Ps[0].ring[0]);
   const xy = Ps.map(P => P.ring.map(v => toXY(F, v)));
+  const area = xy.map(R => { let A = 0; for (let k = 0; k < R.length; k++) { const p = R[k], q = R[(k + 1) % R.length]; A += p[0] * q[1] - q[0] * p[1]; } return Math.abs(A / 2); });
   const bb = xy.map(r => { const xs = r.map(p => p[0]), ys = r.map(p => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; });
+  // test points: every corner, and points a quarter, half and three quarters along every fence
+  const probes = R => R.flatMap((pt, k) => { const nx = R[(k + 1) % R.length]; return [pt, ...[0.25, 0.5, 0.75].map(t => [pt[0] + (nx[0] - pt[0]) * t, pt[1] + (nx[1] - pt[1]) * t])]; });
+  const pr = xy.map(probes);
+  const EDGE = 0.3;   // metres: closer than this to a fence counts as on it
+  const within = (pts, R) => pts.every(pt => distToRing(pt, R) <= EDGE || pointInRing(pt, R));
+  const strictly = (pts, R) => pts.some(pt => pointInRing(pt, R) && distToRing(pt, R) > EDGE);
+  const containers = new Map();
   Ps.forEach((P, i) => { if (ringSelfCrosses(xy[i])) add(P.id, 'fence lines cross each other'); });
   for (let i = 0; i < Ps.length; i++) for (let j = i + 1; j < Ps.length; j++) {
     const a = bb[i], b = bb[j];
     if (a[2] < b[0] || b[2] < a[0] || a[3] < b[1] || b[3] < a[1]) continue;
-    let hit = false;
     const A = xy[i], B = xy[j];
-    for (let p = 0; p < A.length && !hit; p++) for (let q = 0; q < B.length && !hit; q++)
-      hit = segCross(A[p], A[(p + 1) % A.length], B[q], B[(q + 1) % B.length]);
-    // corners and fence midpoints of one paddock that sit well inside the other also mean overlap
-    const probes = R => R.flatMap((pt, k) => { const nx = R[(k + 1) % R.length]; return [pt, [(pt[0] + nx[0]) / 2, (pt[1] + nx[1]) / 2]]; });
-    const inside = (pts, R) => pts.some(pt => pointInRing(pt, R) && distToRing(pt, R) > 0.3);
-    if (!hit) hit = inside(probes(A), B) || inside(probes(B), A);
-    if (hit) { add(Ps[i].id, 'overlaps ' + Ps[j].name); add(Ps[j].id, 'overlaps ' + Ps[i].name); }
+    let cross = false;
+    for (let p = 0; p < A.length && !cross; p++) for (let q = 0; q < B.length && !cross; q++)
+      cross = segCross(A[p], A[(p + 1) % A.length], B[q], B[(q + 1) % B.length]);
+    if (!cross) {
+      const bInA = within(pr[j], A), aInB = within(pr[i], B);
+      if (bInA && aInB) { add(Ps[i].id, 'same boundary as ' + Ps[j].name); add(Ps[j].id, 'same boundary as ' + Ps[i].name); continue; }
+      if (bInA && area[j] < area[i]) { (containers.get(j) || containers.set(j, []).get(j)).push(i); continue; }
+      if (aInB && area[i] < area[j]) { (containers.get(i) || containers.set(i, []).get(i)).push(j); continue; }
+      if (!strictly(pr[i], B) && !strictly(pr[j], A)) continue;   // neighbours, or apart
+    }
+    add(Ps[i].id, 'overlaps ' + Ps[j].name); add(Ps[j].id, 'overlaps ' + Ps[i].name);
   }
-  return warn;
+  for (const [c, list] of containers) {
+    if (warn.has(Ps[c].id)) continue;
+    const ok = list.filter(k => !warn.has(Ps[k].id) || !warn.get(Ps[k].id).some(m => m.startsWith('overlaps ' + Ps[c].name)));
+    if (!ok.length) continue;
+    const best = ok.reduce((m, k) => area[k] < area[m] ? k : m, ok[0]);
+    parent.set(Ps[c].id, Ps[best].id);
+  }
+  return { warn, parent };
 }
 
 /* ================= rendering ================= */
 let lastWarnKey = '', viewRestored = false, sharedLines = [];
+const fillRings = P => { const st = S && S.per.get(P.id); return [P.ring, ...((st && st.children) || []).map(c => byId(c)).filter(Boolean).map(C => C.ring)]; };
 function render() {
   S = computeAll();
   const wk = [...S.warn.entries()].map(([id, m]) => id + ':' + m.join(',')).sort().join('|');
@@ -789,19 +864,23 @@ function render() {
   }
   lastWarnKey = wk;
   polyLayer.clearLayers(); polyById.clear(); hiLayer.clearLayers();
-  for (const P of state.paddocks) {
+  const depth = id => { let d = 0, p = S.per.get(id).parent; while (p && d < 50) { d++; p = S.per.get(p).parent; } return d; };
+  const order = state.paddocks.slice().sort((a, b) => depth(a.id) - depth(b.id));
+  for (const P of order) {
     const sel = P.id === state.selected;
-    const pl = L.polygon(P.ring, {
-      color: P.color, weight: sel ? 3 : 2, opacity: 1, dashArray: S.warn.has(P.id) ? '10 7' : null,
-      fillColor: P.color, fillOpacity: state.fill ? (sel ? 0.16 : 0.1) : 0, className: 'pdk'
-    }).addTo(polyLayer);
-    pl.on('click', e => {
+    const onClick = e => {
       if (state.mode === 'draw' || state.mode === 'measure' || state.mode === 'straighten' || state.mode === 'match') return;
       L.DomEvent.stop(e);
       select(P.id);
-    });
-    polyById.set(P.id, pl);
+    };
+    // fill has a hole for every paddock drawn inside this one; the outline is drawn separately
+    const fill = L.polygon(fillRings(P), { stroke: false, fillColor: P.color, fillOpacity: state.fill ? (sel ? 0.16 : 0.1) : 0 }).addTo(polyLayer).on('click', onClick);
+    const line = L.polygon(P.ring, {
+      color: P.color, weight: sel ? 3 : 2, opacity: 1, dashArray: S.warn.has(P.id) ? '10 7' : null, fill: false, className: 'pdk'
+    }).addTo(polyLayer).on('click', onClick);
+    polyById.set(P.id, { fill, line });
   }
+  renderBuffer();
   // shared fences: alternating dashes in the two paddocks' colours
   sharedLines = [];
   for (const E of S.edges.values()) {
@@ -841,7 +920,7 @@ function renderLabels(drag) {
     const st = S.per.get(P.id);
     if (!state.showNames && !state.showAreas) continue;
     if (drag && drag.affected.has(P.id)) continue;
-    if (!st.labelAt) st.labelAt = labelPoint(P.ring, st.centroid);
+    if (!st.labelAt) st.labelAt = labelPoint(P.ring, st.centroid, st.children.map(c => byId(c).ring));
     const nameHtml = state.showNames ? `<b>${esc(P.name)}</b>` : '';
     const areaHtml = state.showAreas ? `<span>${fmtArea(st.area)} ${areaU()}</span>` : '';
     divMarker(st.labelAt, `<div class="plabel">${nameHtml}${areaHtml}</div>`).addTo(labelLayer);
@@ -926,8 +1005,14 @@ function attachDrag(mk, getMembers, undoInside) {
   const move = p => {
     // corners are updated in place so the midpoint handles beside them can follow
     for (const v of moved) { v.lat = p.lat; v.lng = p.lng; delete v.auto; }
-    for (const pid of affected) { const pl = polyById.get(pid); if (pl) pl.setLatLngs(byId(pid).ring); }
+    const refill = new Set();
+    for (const pid of affected) {
+      const pl = polyById.get(pid); if (pl) pl.line.setLatLngs(byId(pid).ring);
+      refill.add(pid); const par = S.per.get(pid) && S.per.get(pid).parent; if (par) refill.add(par);
+    }
+    for (const pid of refill) { const pl = polyById.get(pid); if (pl) pl.fill.setLatLngs(fillRings(byId(pid))); }
     for (const sl of sharedLines) if (moved.has(sl.a) || moved.has(sl.b)) sl.lines.forEach(l => l.setLatLngs([sl.a, sl.b]));
+    if (bufferLine) { const sg = bufferSegments(); bufferLine.setLatLngs(sg); bufferEdge.setLatLngs(sg); }
     for (const md of midList) {
       if (md.mk === mk || !(moved.has(md.a) || moved.has(md.b))) continue;
       md.mk.setLatLng({ lat: (md.a.lat + md.b.lat) / 2, lng: (md.a.lng + md.b.lng) / 2 });
@@ -949,7 +1034,9 @@ function attachDrag(mk, getMembers, undoInside) {
       }
       if (state.showNames || state.showAreas) {
         const m = polyMetrics(P.ring);
-        divMarker(labelPoint(P.ring, m.centroid), `<div class="plabel">${state.showNames ? `<b>${esc(P.name)}</b>` : ''}${state.showAreas ? `<span>${fmtArea(m.area)} ${areaU()}</span>` : ''}</div>`).addTo(dragLayer);
+        const kids = ((S.per.get(pid) || {}).children || []).map(c => byId(c)).filter(Boolean);
+        const net = Math.max(0, m.area - kids.reduce((a, C) => a + polyMetrics(C.ring).area, 0));
+        divMarker(labelPoint(P.ring, m.centroid, kids.map(C => C.ring)), `<div class="plabel">${state.showNames ? `<b>${esc(P.name)}</b>` : ''}${state.showAreas ? `<span>${fmtArea(net)} ${areaU()}</span>` : ''}</div>`).addTo(dragLayer);
       }
     }
   };
@@ -1192,10 +1279,14 @@ function renderSide() {
         <input type="color" class="sw" value="${P.color}" data-act="color" aria-label="Colour for ${esc(P.name)}">
         <input class="nm" value="${esc(P.name)}" data-act="name" aria-label="Paddock name">
         <span class="meta">${fmtArea(st.area)} ${areaU()}</span>
-        <button class="cx" data-act="toggle" aria-expanded="${sel}" title="${sel ? 'Collapse' : 'Expand'}" aria-label="${sel ? 'Collapse' : 'Expand'} ${esc(P.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${sel ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6'}"/></svg></button>
+        <button class="cx" data-act="toggle" aria-expanded="${sel}" title="${sel ? 'Collapse' : 'Expand'}" aria-label="${sel ? 'Collapse' : 'Expand'} ${esc(P.name)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${sel ? 'm7 14 5-5 5 5' : 'm7 10 5 5 5-5'}"/></svg></button>
         <button class="lk" data-act="lock" aria-pressed="${!!P.locked}" title="${P.locked ? 'Locked: corners can’t be moved or deleted. Click to unlock.' : 'Lock this paddock against changes'}" aria-label="${P.locked ? 'Unlock' : 'Lock'} ${esc(P.name)}">${P.locked ? LOCK_SVG : OPEN_SVG}</button></div>`;
     const w = S.warn.get(P.id);
     const warnLine = w ? `<p class="warn">Check: ${esc(w.join('; '))}</p>` : '';
+    const nestBits = [];
+    if (st.parent) nestBits.push(`Inside ${esc(byId(st.parent).name)}`);
+    if (st.children.length) nestBits.push(`Excludes ${st.children.map(c => esc(byId(c).name)).join(', ')} · gross ${fmtArea(st.gross)} ${areaU()}`);
+    const nestLine = nestBits.length ? `<p class="nest">${nestBits.join(' · ')}</p>` : '';
     if (!sel) return `<article class="card" data-id="${P.id}">${head}${warnLine}</article>`;
     const fenceRows = st.segs.map((s, i) => `<tr data-seg="${i}">
         <td>F${i + 1}</td><td>C${i + 1}→C${(i + 1) % st.segs.length + 1}</td>
@@ -1208,8 +1299,9 @@ function renderSide() {
     const corHead = state.coord === 'mga' ? '<th>Corner</th><th class="r">Easting</th><th class="r">Northing</th>' : '<th>Corner</th><th class="r">Latitude</th><th class="r">Longitude</th>';
     return `<article class="card sel" data-id="${P.id}">${head}${warnLine}
       <div class="card-b">
+        ${nestLine}
         <div class="stats">
-          <div><span class="k">Area</span><b>${fmtArea(st.area)} ${areaU()}</b></div>
+          <div><span class="k">${st.children.length ? 'Net area' : 'Area'}</span><b>${fmtArea(st.area)} ${areaU()}</b></div>
           <div><span class="k">Perimeter</span><b>${fmtM(st.perim)} ${LU()}</b></div>
           <div><span class="k">Corners</span><b>${P.ring.length}</b></div>
         </div>
@@ -1227,8 +1319,8 @@ function renderSide() {
   }).join('');
 }
 
-const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9.5" rx="1.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg>';
-const OPEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="9.5" rx="1.5"/><path d="M8 11V7.5a4 4 0 0 1 7.6-1.7"/></svg>';
+const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="1.5"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/></svg>';
+const OPEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="11" width="12" height="9" rx="1.5"/><path d="M9 11V8a3 3 0 0 1 5.8-1"/></svg>';
 const list = $('#list');
 list.addEventListener('click', e => {
   const card = e.target.closest('.card'); if (!card) return;
@@ -1285,7 +1377,7 @@ list.addEventListener('input', e => {
   if (e.target.dataset.act === 'name') { P.name = e.target.value || 'Unnamed'; S = computeAll(); renderLabels(); save(); }
   if (e.target.dataset.act === 'color') {
     P.color = e.target.value;
-    polyById.get(P.id)?.setStyle({ color: P.color, fillColor: P.color });
+    const pl = polyById.get(P.id); if (pl) { pl.line.setStyle({ color: P.color }); pl.fill.setStyle({ fillColor: P.color }); }
     for (const sl of sharedLines) sl.pids.forEach((pid, k) => { if (pid === P.id) sl.lines[k].setStyle({ color: P.color }); });
     save();
   }
@@ -1328,25 +1420,36 @@ function cornerRows() {
   return rows;
 }
 function paddockRows() {
-  const rows = [['paddock', 'area_ha', 'area_ac', 'perimeter_m', 'perimeter_ft', 'corners', 'shared_fence_m', 'centroid_lat', 'centroid_lon']];
+  const rows = [['paddock', 'area_ha', 'area_ac', 'gross_area_ha', 'inside_paddock', 'excludes', 'perimeter_m', 'perimeter_ft', 'corners', 'shared_fence_m', 'centroid_lat', 'centroid_lon']];
   for (const P of state.paddocks) {
     const st = S.per.get(P.id);
-    rows.push([P.name, (st.area / 1e4).toFixed(4), (st.area / SQM_PER_ACRE).toFixed(4), st.perim.toFixed(2), (st.perim / FT).toFixed(2), P.ring.length,
+    rows.push([P.name, (st.area / 1e4).toFixed(4), (st.area / SQM_PER_ACRE).toFixed(4), (st.gross / 1e4).toFixed(4),
+      st.parent ? byId(st.parent).name : '', st.children.map(c => byId(c).name).join('; '),
+      st.perim.toFixed(2), (st.perim / FT).toFixed(2), P.ring.length,
       st.segs.filter(s => s.shared.length).reduce((a, s) => a + s.d, 0).toFixed(2), st.centroid.lat.toFixed(7), st.centroid.lng.toFixed(7)]);
   }
   rows.push([]);
-  rows.push(['TOTAL', (S.total.area / 1e4).toFixed(4), (S.total.area / SQM_PER_ACRE).toFixed(4), '', '', '', '', '', '']);
+  rows.push(['TOTAL (net areas)', (S.total.area / 1e4).toFixed(4), (S.total.area / SQM_PER_ACRE).toFixed(4), '', '', '', '', '', '', '', '', '']);
   rows.push(['Unique fence length m (shared fences once)', S.total.fence.toFixed(2)]);
   rows.push(['Unique fence length ft (shared fences once)', (S.total.fence / FT).toFixed(2)]);
   return rows;
+}
+/** Ring as closed [lng, lat] list, anticlockwise (ccw) or clockwise. */
+function orientRing(ring, ccw) {
+  const isCcw = polyMetrics(ring).signed > 0;
+  const r = (isCcw === ccw ? ring : ring.slice().reverse()).map(v => [+v.lng.toFixed(8), +v.lat.toFixed(8)]);
+  r.push(r[0]);
+  return r;
 }
 function geojson() {
   const feats = [];
   for (const P of state.paddocks) {
     const st = S.per.get(P.id);
-    const ring = P.ring.map(v => [+v.lng.toFixed(8), +v.lat.toFixed(8)]); ring.push(ring[0]);
-    feats.push({ type: 'Feature', properties: { kind: 'paddock', name: P.name, color: P.color, locked: !!P.locked, area_ha: +(st.area / 1e4).toFixed(4), perimeter_m: +st.perim.toFixed(2) },
-      geometry: { type: 'Polygon', coordinates: [ring.slice().reverse()] } }); // RFC 7946: exterior ring anticlockwise
+    // RFC 7946: exterior ring anticlockwise, holes (paddocks inside this one) clockwise
+    const rings = [orientRing(P.ring, true), ...st.children.map(c => orientRing(byId(c).ring, false))];
+    feats.push({ type: 'Feature', properties: { kind: 'paddock', name: P.name, color: P.color, locked: !!P.locked,
+        area_ha: +(st.area / 1e4).toFixed(4), gross_area_ha: +(st.gross / 1e4).toFixed(4), inside: st.parent ? byId(st.parent).name : null, perimeter_m: +st.perim.toFixed(2) },
+      geometry: { type: 'Polygon', coordinates: rings } });
   }
   for (const E of S.edges.values()) feats.push({ type: 'Feature',
     properties: { kind: 'fence', length_m: +E.len.toFixed(2), length_ft: +(E.len / FT).toFixed(2), paddocks: [...new Set(E.owners.map(o => byId(o.pid).name))].join('; ') },
@@ -1357,16 +1460,18 @@ function kml() {
   const k = hex => { const h = hex.replace('#', ''); return h.slice(4, 6) + h.slice(2, 4) + h.slice(0, 2); };
   const pms = state.paddocks.map(P => {
     const st = S.per.get(P.id);
-    const coords = [...P.ring, P.ring[0]].map(v => `${v.lng.toFixed(8)},${v.lat.toFixed(8)},0`).join(' ');
-    return `<Placemark><name>${esc(P.name)}</name><description>${fmtHa(st.area)} ha (${nf(st.area / SQM_PER_ACRE, 2)} ac), perimeter ${nf(st.perim, 1)} m</description>
+    const kc = R => [...R, R[0]].map(v => `${v.lng.toFixed(8)},${v.lat.toFixed(8)},0`).join(' ');
+    const coords = kc(P.ring);
+    const holes = st.children.map(c => `<innerBoundaryIs><LinearRing><coordinates>${kc(byId(c).ring)}</coordinates></LinearRing></innerBoundaryIs>`).join('');
+    return `<Placemark><name>${esc(P.name)}</name><description>${fmtHa(st.area)} ha (${nf(st.area / SQM_PER_ACRE, 2)} ac)${st.children.length ? `, gross ${fmtHa(st.gross)} ha` : ''}, perimeter ${nf(st.perim, 1)} m</description>
 <Style><LineStyle><color>ff${k(P.color)}</color><width>3</width></LineStyle><PolyStyle><color>55${k(P.color)}</color></PolyStyle></Style>
-<Polygon><tessellate>1</tessellate><outerBoundaryIs><LinearRing><coordinates>${coords}</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>`;
+<Polygon><tessellate>1</tessellate><outerBoundaryIs><LinearRing><coordinates>${coords}</coordinates></LinearRing></outerBoundaryIs>${holes}</Polygon></Placemark>`;
   }).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Paddocks ${stamp()}</name>\n${pms}\n</Document></kml>\n`;
 }
 function paddockTSV(P) {
   const st = S.per.get(P.id);
-  const lines = [`${P.name}\t${fmtArea(st.area)} ${areaU()}\tperimeter ${toLU(st.perim).toFixed(2)} ${LU()}`, '', `Fence\tFrom\tTo\tLength ${LU()}\tBearing deg true\tShared with`];
+  const lines = [`${P.name}\t${fmtArea(st.area)} ${areaU()}${st.children.length ? ` net (gross ${fmtArea(st.gross)} ${areaU()})` : ''}\tperimeter ${toLU(st.perim).toFixed(2)} ${LU()}`, '', `Fence\tFrom\tTo\tLength ${LU()}\tBearing deg true\tShared with`];
   st.segs.forEach((s, i, a) => lines.push(`F${i + 1}\tC${i + 1}\tC${(i + 1) % a.length + 1}\t${toLU(s.d).toFixed(2)}\t${fmtBrg(s.brg)}\t${s.shared.join('; ')}`));
   lines.push('', `Corner\tLatitude\tLongitude\tEasting\tNorthing (zone ${S.zone})`);
   P.ring.forEach((v, i) => { const u = toUTM(v.lat, v.lng, S.zone); lines.push(`C${i + 1}\t${v.lat.toFixed(7)}\t${v.lng.toFixed(7)}\t${u.E.toFixed(3)}\t${u.N.toFixed(3)}`); });
@@ -1477,7 +1582,7 @@ $('#nameOn').onchange = e => { state.showNames = e.target.checked; renderLabels(
 document.querySelectorAll('[data-len]').forEach(b => b.onclick = () => {
   state.lenUnit = b.dataset.len === 'ft' ? 'ft' : 'm';
   document.querySelectorAll('[data-len]').forEach(x => x.setAttribute('aria-pressed', x === b));
-  render(); updateSnapOut(); updateBanner(); updateMeasureBanner();
+  render(); updateSnapOut(); updateBufferOut(); updateBanner(); updateMeasureBanner();
   if (state.measure) renderMeasure();
   if (prof && prof.e) drawProfile(); else if (prof) $('#pfSrc').textContent = `${fmtM(prof.L)} ${LU()} along the line`;
   save();
@@ -1555,8 +1660,51 @@ function equalizeToggles() {
   const w = Math.max(...groups.map(g => g.getBoundingClientRect().width));
   if (w > 0) groups.forEach(g => { g.style.width = Math.ceil(w) + 'px'; });
 }
+/* ----- visual buffer: a translucent grey band either side of every fence ----- */
+let bufferLine = null, bufferEdge = null;
+function bufferSegments() {
+  const seen = new Set(), segs = [];
+  for (const P of state.paddocks) {
+    const n = P.ring.length;
+    for (let i = 0; i < n; i++) {
+      const a = P.ring[i], b = P.ring[(i + 1) % n], k = edgeKey(a, b);
+      if (seen.has(k)) continue;
+      seen.add(k); segs.push([a, b]);
+    }
+  }
+  return segs;
+}
+/** Screen width (px) of a band reaching the buffer distance on each side of the fence. */
+function bufferWeight() {
+  const lat = map.getCenter().lat;
+  const mPerPx = 40075016.686 * Math.cos(lat * DEG) / Math.pow(2, map.getZoom() + 8);
+  return Math.max(1, 2 * state.bufferM / mPerPx);
+}
+const BUF_EDGE = 2.5;   // px of solid dark edge at the buffer limit
+function renderBuffer() {
+  bufferLayer.clearLayers(); bufferLine = null; bufferEdge = null;
+  if (!state.buffer || !state.paddocks.length) return;
+  const segs = bufferSegments(), w = bufferWeight();
+  const opts = { renderer: bufferRenderer, lineCap: 'round', lineJoin: 'round', interactive: false, noClip: true, smoothFactor: 0, opacity: 1 };
+  // dark band slightly wider, then the grey band on top: leaves a crisp dark outline at the buffer distance
+  bufferEdge = L.polyline(segs, Object.assign({ color: '#0B0B0B', weight: w + 2 * BUF_EDGE }, opts)).addTo(bufferLayer);
+  bufferLine = L.polyline(segs, Object.assign({ color: '#CFCFCF', weight: w }, opts)).addTo(bufferLayer);
+}
+function updateBufferWeight() {
+  if (!bufferLine) return;
+  const w = bufferWeight();
+  bufferLine.setStyle({ weight: w }); bufferEdge.setStyle({ weight: w + 2 * BUF_EDGE });
+}
+function updateBufferOut() {
+  const v = toLU(state.bufferM);
+  $('#bufOut').textContent = state.buffer ? `${nf(v, v < 10 ? 1 : 0)} ${LU()} each side` : 'off';
+}
+$('#bufOn').onchange = e => { state.buffer = e.target.checked; $('#bufM').disabled = !state.buffer; updateBufferOut(); renderBuffer(); save(); };
+$('#bufM').oninput = e => { state.bufferM = Math.min(50, Math.max(1, +e.target.value || 15)); updateBufferOut(); if (bufferLine) updateBufferWeight(); else renderBuffer(); save(); };
+
 function syncSettingsUI() {
   $('#snapOn').checked = state.snap; $('#snapPx').value = state.snapPx; $('#snapPx').disabled = !state.snap;
+  $('#bufOn').checked = state.buffer; $('#bufM').value = state.bufferM; $('#bufM').disabled = !state.buffer; updateBufferOut();
   $('#lenOn').checked = state.showLengths; $('#areaOn').checked = state.showAreas; $('#nameOn').checked = state.showNames; $('#fillOn').checked = state.fill; $('#bFill').setAttribute('aria-pressed', state.fill);
   document.querySelectorAll('[data-coord]').forEach(x => x.setAttribute('aria-pressed', x.dataset.coord === state.coord));
   document.querySelectorAll('[data-area]').forEach(x => x.setAttribute('aria-pressed', x.dataset.area === state.areaUnit));
@@ -1589,9 +1737,9 @@ function sanitizePaddocks(list) {
 $('#bSaveProj').onclick = () => {
   const c = map.getCenter();
   const proj = {
-    app: 'paddock-mapper', version: 1, saved: new Date().toISOString(),
+    app: 'paddock-draw', version: 1, saved: new Date().toISOString(),
     view: { lat: c.lat, lng: c.lng, zoom: map.getZoom() }, layer: state.layer,
-    settings: { snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames },
+    settings: { snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM },
     paddocks: state.paddocks.map(P => ({ id: P.id, name: P.name, color: P.color, locked: !!P.locked, ring: P.ring.map(v => v.auto ? { lat: v.lat, lng: v.lng, auto: true } : { lat: v.lat, lng: v.lng }) }))
   };
   download(`paddocks-${stamp()}.paddocks.json`, JSON.stringify(proj, null, 1), 'application/json');
@@ -1605,7 +1753,7 @@ $('#projIn').onchange = async e => {
   try { d = JSON.parse(await f.text()); } catch { toast('That file could not be read as a project file'); return; }
   if (!d || !Array.isArray(d.paddocks)) {
     if (d && (d.type === 'FeatureCollection' || d.type === 'Feature')) toast('That is a GeoJSON file. Use Import GeoJSON to add its paddocks.');
-    else toast('That is not a Paddock Mapper project file');
+    else toast('That is not a Paddock Draw project file');
     return;
   }
   const paddocks = sanitizePaddocks(d.paddocks);
@@ -1616,7 +1764,7 @@ $('#projIn').onchange = async e => {
   state.paddocks = paddocks; state.selected = null; state.selNode = null; state.draft = null;
   const st = d.settings || {};
   state.snap = st.snap !== false; state.snapPx = Math.min(40, Math.max(4, +st.snapPx || 14));
-  state.showLengths = st.showLengths !== false; state.coord = st.coord === 'mga' ? 'mga' : 'll'; state.fill = st.fillOn === true; state.areaUnit = st.areaUnit === 'ac' ? 'ac' : 'ha'; state.lenUnit = st.lenUnit === 'ft' ? 'ft' : 'm'; state.showAreas = st.showAreas !== false; state.showNames = st.showNames !== false;
+  state.showLengths = st.showLengths !== false; state.coord = st.coord === 'mga' ? 'mga' : 'll'; state.fill = st.fillOn === true; state.areaUnit = st.areaUnit === 'ac' ? 'ac' : 'ha'; state.lenUnit = st.lenUnit === 'ft' ? 'ft' : 'm'; state.showAreas = st.showAreas !== false; state.showNames = st.showNames !== false; state.buffer = st.buffer === true; state.bufferM = Math.min(50, Math.max(1, Math.round(+st.bufferM) || 15));
   if (d.layer) setBase(d.layer);
   syncSettingsUI();
   stitch(); cleanup(); render();
@@ -1687,6 +1835,12 @@ function updateStraightBanner() {
     : 'Click the fence to use as the reference bearing.';
 }
 
+/** After a corner moves, keep the highlighted reference fence attached to it. */
+function followRef(R, fromKey, to) {
+  if (!R) return;
+  if (key(R.a) === fromKey) R.a = { lat: to.lat, lng: to.lng };
+  if (key(R.b) === fromKey) R.b = { lat: to.lat, lng: to.lng };
+}
 function straightenClick(latlng) {
   const f = nearestFence(latlng);
   if (!f) { toast(straightRef ? 'Click closer to a fence line' : 'Click on a fence line to pick the reference'); return; }
@@ -1729,6 +1883,7 @@ function straightenClick(latlng) {
   const shift = vincenty(mov, target).d;
   pushUndo();
   for (const m of members) m.P.ring[m.i] = { lat: target.lat, lng: target.lng };
+  followRef(straightRef, mk, target); followRef(matchRef, mk, target);
   stitch(); cleanup(); render(); save();
   renderStraight(); updateStraightBanner();
   toast(`${f.P.name} F${f.i + 1} set to ${fmtBrg(tableBrg(target)).padStart(8, '0')}° · corner moved ${nf(toLU(shift), shift < 1 ? 2 : 1)} ${LU()}`);
@@ -1766,6 +1921,7 @@ function matchClick(latlng) {
   const shift = vincenty(mov, target).d;
   pushUndo();
   for (const m of members) m.P.ring[m.i] = { lat: target.lat, lng: target.lng };
+  followRef(straightRef, mk, target); followRef(matchRef, mk, target);
   stitch(); cleanup(); render(); save();
   renderStraight(); updateStraightBanner();
   toast(`${f.P.name} F${f.i + 1} set to ${nf(toLU(vincenty(fixed, target).d), 2)} ${LU()} · corner moved ${nf(toLU(shift), shift < 1 ? 2 : 1)} ${LU()}`);
@@ -2083,7 +2239,7 @@ map.on('mouseout', () => {
   if (state.mode === 'draw') { showSnap(null); renderDraft(); }
   if (state.mode === 'measure') { showSnap(null); renderMeasure(); }
 });
-map.on('zoomend', () => { if (dragging) return; renderLabels(); renderHandles(); updateSnapOut(); if (state.measure) renderMeasure(); if (state.mode === 'straighten' || state.mode === 'match') renderStraight(); });
+map.on('zoomend', () => { updateBufferWeight(); updateBufferOut(); if (dragging) return; renderLabels(); renderHandles(); updateSnapOut(); if (state.measure) renderMeasure(); if (state.mode === 'straighten' || state.mode === 'match') renderStraight(); });
 map.on('moveend', save);
 
 document.addEventListener('keydown', e => {
@@ -2137,7 +2293,7 @@ function save() {
     const c = map.getCenter();
     localStorage.setItem(STORE, JSON.stringify({
       paddocks: state.paddocks, view: [c.lat, c.lng, map.getZoom()], base: state.layer,
-      snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames
+      snap: state.snap, snapPx: state.snapPx, showLengths: state.showLengths, coord: state.coord, fillOn: state.fill, areaUnit: state.areaUnit, lenUnit: state.lenUnit, showAreas: state.showAreas, showNames: state.showNames, buffer: state.buffer, bufferM: state.bufferM
     }));
   } catch { /* storage unavailable: work continues in memory */ }
 }
@@ -2150,7 +2306,8 @@ function load() {
   Object.assign(state, {
     layer: bases[d.base] ? d.base : state.layer,
     snap: d.snap !== false, snapPx: Math.min(40, Math.max(4, +d.snapPx || 14)), showLengths: d.showLengths !== false, coord: d.coord === 'mga' ? 'mga' : 'll',
-    fill: d.fillOn === true, areaUnit: d.areaUnit === 'ac' ? 'ac' : 'ha', lenUnit: d.lenUnit === 'ft' ? 'ft' : 'm', showAreas: d.showAreas !== false, showNames: d.showNames !== false
+    fill: d.fillOn === true, areaUnit: d.areaUnit === 'ac' ? 'ac' : 'ha', lenUnit: d.lenUnit === 'ft' ? 'ft' : 'm', showAreas: d.showAreas !== false, showNames: d.showNames !== false,
+    buffer: d.buffer === true, bufferM: Math.min(50, Math.max(1, Math.round(+d.bufferM) || 15))
   });
   const paddocks = sanitizePaddocks(d.paddocks);
   if (!paddocks.length) return false;           // nothing saved: open with the example paddocks
